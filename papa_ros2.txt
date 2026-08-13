@@ -1,0 +1,655 @@
+PAPA + YDLIDAR X4 - GUIA DE INSTALACION, COMPILACION Y EJECUCION
+====================================================================
+
+Estado documentado: 13/08/2026
+Sistema usado durante las pruebas:
+- Ubuntu 24.04
+- ROS 2 Jazzy
+- YDLIDAR X4
+- Workspace del robot: ~/papa_ws
+- Workspace del LiDAR: ~/ydlidar_ws
+- Paquete del modelo del robot: papa_description
+- Driver ROS 2: ydlidar_ros2_driver
+- Topic del LiDAR: /scan
+- Frame del LiDAR usado por Papa: lidar_link
+
+IMPORTANTE
+----------
+El driver del LiDAR y el proyecto Papa NO necesitan estar dentro del mismo
+workspace. ROS 2 puede usar paquetes provenientes de varios workspaces si se
+hace "source" de ambos.
+
+La configuración que quedó funcionando durante las pruebas publica /scan a
+aproximadamente 8.8 Hz.
+
+
+====================================================================
+1. DEPENDENCIAS GENERALES
+====================================================================
+
+Esta guía supone que ROS 2 Jazzy ya está instalado en Ubuntu 24.04.
+
+Actualizar paquetes:
+
+sudo apt update
+sudo apt upgrade
+
+Instalar herramientas generales:
+
+sudo apt install git cmake pkg-config build-essential
+
+Instalar herramientas de ROS 2 / colcon:
+
+sudo apt install python3-colcon-common-extensions
+sudo apt install python3-rosdep
+
+Paquetes ROS usados para visualizar el robot:
+
+sudo apt install ros-jazzy-xacro
+sudo apt install ros-jazzy-robot-state-publisher
+sudo apt install ros-jazzy-joint-state-publisher-gui
+sudo apt install ros-jazzy-rviz2
+
+Cargar ROS 2:
+
+source /opt/ros/jazzy/setup.bash
+
+
+====================================================================
+2. INSTALAR YDLIDAR SDK
+====================================================================
+
+El driver ROS 2 de YDLIDAR depende de YDLidar-SDK.
+
+Ir al HOME:
+
+cd ~
+
+Clonar el SDK oficial:
+
+git clone https://github.com/YDLIDAR/YDLidar-SDK.git
+
+Compilar e instalar:
+
+cd ~/YDLidar-SDK
+mkdir -p build
+cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+
+Opcional: probar directamente el LiDAR con el SDK:
+
+cd ~/YDLidar-SDK/build
+./tri_test
+
+Para el YDLIDAR X4 usado en Papa se utilizaron:
+
+Baudrate: 128000
+Single channel: no
+
+La frecuencia configurada finalmente desde ROS fue 6.0 Hz; el topic /scan
+se observó publicando aproximadamente a 8.8 Hz.
+
+
+====================================================================
+3. CREAR EL WORKSPACE DEL YDLIDAR ROS 2
+====================================================================
+
+Crear el workspace:
+
+cd ~
+mkdir -p ~/ydlidar_ws/src
+
+Clonar el driver ROS 2.
+
+Para ROS 2 Humble/Jazzy el README oficial de YDLIDAR indica usar la rama
+"humble":
+
+git clone -b humble https://github.com/YDLIDAR/ydlidar_ros2_driver.git \
+    ~/ydlidar_ws/src/ydlidar_ros2_driver
+
+NOTA:
+Si el repositorio ya fue clonado anteriormente, NO volver a clonarlo.
+
+
+====================================================================
+4. CONFIGURAR EL YDLIDAR X4
+====================================================================
+
+Editar el archivo YAML utilizado por ydlidar_launch.py.
+
+La ubicación normal dentro del repositorio es:
+
+~/ydlidar_ws/src/ydlidar_ros2_driver/params/ydlidar.yaml
+
+Abrirlo, por ejemplo:
+
+nano ~/ydlidar_ws/src/ydlidar_ros2_driver/params/ydlidar.yaml
+
+Configuración que quedó funcionando con nuestro YDLIDAR X4:
+
+ydlidar_ros2_driver_node:
+  ros__parameters:
+    port: /dev/ttyUSB0
+    frame_id: lidar_link
+    ignore_array: ""
+    baudrate: 128000
+    lidar_type: 1
+    device_type: 0
+    isSingleChannel: false
+    intensity: false
+    intensity_bit: 0
+    sample_rate: 5
+    abnormal_check_count: 4
+    fixed_resolution: true
+    reversion: false
+    inverted: true
+    auto_reconnect: true
+    support_motor_dtr: true
+    angle_max: 180.0
+    angle_min: -180.0
+    range_max: 12.0
+    range_min: 0.12
+    frequency: 6.0
+    invalid_range_is_inf: false
+    debug: false
+
+IMPORTANTE:
+El frame_id debe ser:
+
+lidar_link
+
+porque ese es el link definido en el URDF/Xacro de Papa.
+
+Antes estaba configurado como "laser_frame", lo cual impedía integrar
+directamente el /scan con el árbol TF del robot.
+
+
+====================================================================
+5. COMPILAR EL WORKSPACE DEL YDLIDAR
+====================================================================
+
+Cada vez que se modifica el YAML o el paquete:
+
+cd ~/ydlidar_ws
+
+source /opt/ros/jazzy/setup.bash
+
+colcon build --symlink-install
+
+Luego:
+
+source ~/ydlidar_ws/install/setup.bash
+
+
+====================================================================
+6. WORKSPACE DE PAPA
+====================================================================
+
+Crear el workspace si todavía no existe:
+
+cd ~
+mkdir -p ~/papa_ws/src
+
+El repositorio original del proyecto es:
+
+https://github.com/cdrfiuba/papa
+
+Para clonar un repositorio ROS 2 dentro del workspace se utiliza la forma:
+
+cd ~/papa_ws/src
+git clone https://github.com/cdrfiuba/papa.git
+
+IMPORTANTE:
+El repositorio público histórico de Papa contiene código anterior del proyecto.
+Para esta configuración debe utilizarse la rama/versión del repositorio donde
+se encuentre el paquete ROS 2:
+
+papa_description
+
+Después de clonar o actualizar el código, verificar:
+
+find ~/papa_ws/src -name package.xml
+
+Debe aparecer el package.xml correspondiente a papa_description.
+
+
+====================================================================
+7. INSTALAR DEPENDENCIAS DEL WORKSPACE PAPA
+====================================================================
+
+Primero cargar ROS:
+
+source /opt/ros/jazzy/setup.bash
+
+Inicializar rosdep si nunca se hizo en la computadora:
+
+sudo rosdep init
+rosdep update
+
+NOTA:
+"sudo rosdep init" se hace una sola vez. Si indica que ya fue inicializado,
+continuar directamente.
+
+Instalar automáticamente dependencias declaradas por los paquetes:
+
+cd ~/papa_ws
+
+rosdep install --from-paths src --ignore-src -r -y
+
+
+====================================================================
+8. COMPILAR PAPA
+====================================================================
+
+cd ~/papa_ws
+
+source /opt/ros/jazzy/setup.bash
+
+colcon build --symlink-install
+
+Luego cargar el workspace:
+
+source ~/papa_ws/install/setup.bash
+
+Comprobar que ROS encuentra el paquete:
+
+ros2 pkg list | grep papa
+
+Debe aparecer:
+
+papa_description
+
+
+====================================================================
+9. USAR LOS DOS WORKSPACES JUNTOS
+====================================================================
+
+En TODA terminal nueva que vaya a trabajar con Papa + YDLIDAR:
+
+source /opt/ros/jazzy/setup.bash
+source ~/ydlidar_ws/install/setup.bash
+source ~/papa_ws/install/setup.bash
+
+Comprobar que ROS encuentra ambos paquetes:
+
+ros2 pkg list | grep ydlidar
+ros2 pkg list | grep papa
+
+Resultados esperados:
+
+ydlidar_ros2_driver
+papa_description
+
+
+====================================================================
+10. LEVANTAR EL MODELO DE PAPA EN RVIZ
+====================================================================
+
+TERMINAL 1:
+
+source /opt/ros/jazzy/setup.bash
+source ~/ydlidar_ws/install/setup.bash
+source ~/papa_ws/install/setup.bash
+
+ros2 launch papa_description display.launch.py
+
+Esto abre RViz mostrando el URDF/Xacro del robot.
+
+En la configuración actual el modelo contiene:
+
+base_footprint
+    |
+    +-- base_link
+          |
+          +-- left_wheel_link
+          +-- right_wheel_link
+          +-- caster_link
+          +-- lidar_link
+
+
+====================================================================
+11. LEVANTAR EL YDLIDAR X4
+====================================================================
+
+Conectar el LiDAR por USB.
+
+Comprobar el puerto:
+
+ls -l /dev/ttyUSB*
+
+En nuestras pruebas se utilizó:
+
+/dev/ttyUSB0
+
+TERMINAL 2:
+
+source /opt/ros/jazzy/setup.bash
+source ~/ydlidar_ws/install/setup.bash
+source ~/papa_ws/install/setup.bash
+
+ros2 launch ydlidar_ros2_driver ydlidar_launch.py
+
+
+====================================================================
+12. COMPROBAR QUE EL LIDAR FUNCIONA
+====================================================================
+
+TERMINAL 3:
+
+source /opt/ros/jazzy/setup.bash
+source ~/ydlidar_ws/install/setup.bash
+source ~/papa_ws/install/setup.bash
+
+Ver topics:
+
+ros2 topic list
+
+Comprobar que existe /scan:
+
+ros2 topic list | grep scan
+
+Comprobar frecuencia:
+
+ros2 topic hz /scan
+
+Resultado observado durante las pruebas:
+
+aprox. 8.8 Hz
+
+Ver un mensaje:
+
+ros2 topic echo /scan --once
+
+Debe aparecer:
+
+header:
+  ...
+  frame_id: lidar_link
+
+También deben aparecer:
+
+angle_min
+angle_max
+angle_increment
+scan_time
+range_min
+range_max
+ranges
+
+
+====================================================================
+13. VISUALIZAR EL LIDAR EN RVIZ
+====================================================================
+
+Con Papa y el YDLIDAR ejecutándose simultáneamente:
+
+En RViz:
+
+Add
+-> By display type
+-> LaserScan
+
+Configurar:
+
+Topic: /scan
+
+El Fixed Frame utilizado durante estas pruebas fue:
+
+base_link
+
+MUY IMPORTANTE - QoS
+--------------------
+
+El driver de YDLIDAR publica /scan con una QoS que requiere que RViz utilice:
+
+Reliability Policy: Best Effort
+
+En las propiedades de LaserScan:
+
+Topic
+  Depth: 5
+  History Policy: Keep Last
+  Reliability Policy: Best Effort
+  Durability Policy: Volatile
+
+Si RViz utiliza "Reliable", aparece un warning como:
+
+requesting incompatible QoS
+Last incompatible policy: RELIABILITY_QOS_POLICY
+
+o:
+
+offering incompatible QoS
+No messages will be sent to it.
+Last incompatible policy: RELIABILITY_QOS_POLICY
+
+En ese caso NO es un problema del TF ni del URDF:
+cambiar Reliability Policy a Best Effort.
+
+
+====================================================================
+14. COMPROBAR TF Y FRAME DEL LIDAR
+====================================================================
+
+El Xacro actual de Papa define:
+
+base_link
+    |
+    +-- lidar_link
+
+El driver debe publicar:
+
+/scan
+frame_id: lidar_link
+
+Comprobarlo con:
+
+ros2 topic echo /scan --once
+
+La coincidencia del nombre es necesaria para que RViz pueda transformar
+correctamente los puntos del LiDAR al frame base_link.
+
+
+====================================================================
+15. ACTUALIZAR EL CODIGO DESDE GIT
+====================================================================
+
+Si el repositorio ya está clonado:
+
+cd ~/papa_ws/src/<directorio-del-repositorio>
+git status
+git pull
+
+Luego volver a compilar:
+
+cd ~/papa_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+source ~/papa_ws/install/setup.bash
+
+Si se modificó solamente papa_description se puede compilar únicamente
+ese paquete:
+
+cd ~/papa_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install --packages-select papa_description
+source ~/papa_ws/install/setup.bash
+
+
+====================================================================
+16. ACTUALIZAR / RECOMPILAR EL DRIVER DEL LIDAR
+====================================================================
+
+cd ~/ydlidar_ws/src/ydlidar_ros2_driver
+git status
+git pull
+
+Luego:
+
+cd ~/ydlidar_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+source ~/ydlidar_ws/install/setup.bash
+
+
+====================================================================
+17. COMANDOS RAPIDOS PARA USO DIARIO
+====================================================================
+
+TERMINAL 1 - Papa + RViz:
+
+source /opt/ros/jazzy/setup.bash
+source ~/ydlidar_ws/install/setup.bash
+source ~/papa_ws/install/setup.bash
+ros2 launch papa_description display.launch.py
+
+
+TERMINAL 2 - YDLIDAR:
+
+source /opt/ros/jazzy/setup.bash
+source ~/ydlidar_ws/install/setup.bash
+source ~/papa_ws/install/setup.bash
+ros2 launch ydlidar_ros2_driver ydlidar_launch.py
+
+
+TERMINAL 3 - Diagnóstico:
+
+source /opt/ros/jazzy/setup.bash
+source ~/ydlidar_ws/install/setup.bash
+source ~/papa_ws/install/setup.bash
+
+ros2 topic hz /scan
+ros2 topic echo /scan --once
+
+
+====================================================================
+18. OPCIONAL: AGREGAR LOS WORKSPACES AL .bashrc
+====================================================================
+
+Para evitar hacer source manualmente en cada terminal se puede agregar:
+
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+echo "source ~/ydlidar_ws/install/setup.bash" >> ~/.bashrc
+echo "source ~/papa_ws/install/setup.bash" >> ~/.bashrc
+
+Después:
+
+source ~/.bashrc
+
+NOTA:
+El orden importa. Primero ROS 2, luego ydlidar_ws y finalmente papa_ws.
+
+
+====================================================================
+19. PROBLEMAS QUE APARECIERON DURANTE LAS PRUEBAS
+====================================================================
+
+A) /scan existe pero RViz no muestra puntos
+--------------------------------------------
+
+Revisar:
+
+LaserScan -> Topic -> Reliability Policy
+
+Debe ser:
+
+Best Effort
+
+
+B) /scan publica con frame_id: laser_frame
+------------------------------------------
+
+Modificar el YAML del YDLIDAR:
+
+frame_id: lidar_link
+
+Luego recompilar/re-sourcear el workspace del LiDAR y reiniciar el driver.
+
+
+C) "Node not found" al consultar parámetros
+-------------------------------------------
+
+Por ejemplo:
+
+ros2 param get /ydlidar_ros2_driver_node frame_id
+
+Si devuelve:
+
+Node not found
+
+verificar primero que el driver esté ejecutándose:
+
+ros2 node list
+
+
+D) Checksum error / Failed to get scan
+--------------------------------------
+
+Durante las pruebas aparecieron ocasionalmente errores como:
+
+Checksum error ...
+Failed to get scan
+
+Si aparecen repetidamente:
+
+1. Detener el driver con Ctrl+C.
+2. Desconectar el USB del LiDAR.
+3. Esperar unos segundos.
+4. Reconectar.
+5. Verificar /dev/ttyUSB0.
+6. Volver a iniciar el driver.
+7. Comprobar nuevamente:
+
+ros2 topic hz /scan
+
+Si mantiene aproximadamente 8.8 Hz y los errores son aislados, el LiDAR
+está entregando scans.
+
+
+====================================================================
+20. ESTADO ACTUAL DEL PROYECTO
+====================================================================
+
+A la fecha de esta guía se consiguió:
+
+[OK] URDF/Xacro básico de Papa en ROS 2
+[OK] base_footprint
+[OK] base_link
+[OK] ruedas motrices
+[OK] caster
+[OK] representación del YDLIDAR como lidar_link
+[OK] YDLidar-SDK instalado
+[OK] ydlidar_ros2_driver ejecutándose
+[OK] /scan funcionando
+[OK] frecuencia observada ~8.8 Hz
+[OK] frame_id cambiado a lidar_link
+[OK] LaserScan visualizado en RViz
+[OK] QoS de RViz configurado como Best Effort
+
+Próximos pasos previstos:
+
+1. Verificar orientación física del LiDAR respecto del frente del robot.
+2. Corregir xyz/rpy de lidar_joint con medidas reales si es necesario.
+3. Integrar encoders.
+4. Obtener odometría diferencial.
+5. Publicar transformación odom -> base_footprint.
+6. Integrar LiDAR + odometría.
+7. SLAM.
+8. Nav2.
+
+
+====================================================================
+REFERENCIAS
+====================================================================
+
+Repositorio original Papa:
+https://github.com/cdrfiuba/papa
+
+YDLidar-SDK:
+https://github.com/YDLIDAR/YDLidar-SDK
+
+YDLIDAR ROS 2 Driver:
+https://github.com/YDLIDAR/ydlidar_ros2_driver
+
