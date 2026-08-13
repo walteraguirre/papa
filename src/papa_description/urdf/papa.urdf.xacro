@@ -1,0 +1,505 @@
+<?xml version="1.0"?>
+
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro"
+    name="cdr_mobile_robot">
+
+
+    <!-- ================================================= -->
+    <!-- PARÁMETROS REALES MEDIDOS DESDE LOS STL           -->
+    <!-- ================================================= -->
+
+    <!-- STL exportados en centímetros -->
+    <xacro:property name="mesh_scale" value="0.01"/>
+
+    <!-- Base física, ya orientada según ejes ROS -->
+    <!-- CAD: X=41.688 cm, Y=44.9812 cm -->
+    <!-- ROS: X=44.9812 cm, Y=41.688 cm -->
+    <xacro:property name="base_length" value="0.449812"/>
+    <xacro:property name="base_width"  value="0.416880"/>
+    <xacro:property name="base_height" value="0.010"/>
+
+    <!-- Ruedas motrices -->
+    <xacro:property name="wheel_radius" value="0.0798"/>
+    <xacro:property name="wheel_width"  value="0.030"/>
+
+    <!--
+    Distancia centro-centro medida a partir del
+    ensamblaje realizado en FreeCAD:
+    20.9812 - (-21.0188) = 42.0000 cm
+    -->
+    <xacro:property name="wheel_separation" value="0.420"/>
+
+    <!--
+    Posiciones reales de cada rueda.
+    No son exactamente simétricas por cómo quedó
+    acomodado el modelo en FreeCAD.
+    -->
+    <xacro:property name="left_wheel_y"  value="0.209812"/>
+    <xacro:property name="right_wheel_y" value="-0.210188"/>
+
+    <!-- Ambas ruedas están sobre el mismo eje longitudinal -->
+    <xacro:property name="wheel_x" value="0.0"/>
+
+    <!--
+    El centro de la base STL está a Z=10.5 cm.
+    El centro de las ruedas está a Z=8.0212 cm.
+
+    Diferencia:
+    10.5 - 8.0212 = 2.4788 cm
+    -->
+    <xacro:property name="base_z_from_axle" value="0.024788"/>
+
+    <!-- Rueda libre -->
+    <xacro:property name="caster_x" value="0.172381"/>
+    <xacro:property name="caster_y" value="0.001108"/>
+    <xacro:property name="caster_z" value="-0.029869"/>
+
+
+    <!-- ================================================= -->
+    <!-- COLORES                                           -->
+    <!-- ================================================= -->
+
+    <material name="base_gray">
+        <color rgba="0.35 0.35 0.35 1.0"/>
+    </material>
+
+    <material name="wheel_black">
+        <color rgba="0.05 0.05 0.05 1.0"/>
+    </material>
+
+    <material name="caster_gray">
+        <color rgba="0.65 0.65 0.65 1.0"/>
+    </material>
+
+
+    <!-- ================================================= -->
+    <!-- BASE FOOTPRINT                                    -->
+    <!-- ================================================= -->
+
+    <!--
+    Frame ubicado sobre el suelo.
+    Es el frame que más adelante usaremos para navegación.
+    -->
+
+    <link name="base_footprint"/>
+
+
+    <!-- ================================================= -->
+    <!-- BASE LINK                                         -->
+    <!-- ================================================= -->
+
+    <!--
+    base_link está ubicado:
+        X = centro del robot
+        Y = centro del robot
+        Z = altura del eje de las ruedas
+
+    De esta forma los joints de las ruedas quedan con Z=0.
+    -->
+
+    <link name="base_link">
+
+
+        <!-- ================= VISUAL ================= -->
+
+        <visual>
+
+            <!--
+            Papa_Base.stl:
+
+            BoundingBox original:
+            X = [-20.844, +20.844]
+            Y = [-22.4906, +22.4906]
+            Z = [10, 11] cm
+
+            Centro STL:
+            (0, 0, 10.5 cm)
+
+            Rotamos +90° alrededor de Z para adaptar
+            los ejes del CAD a los ejes de ROS.
+
+            base_link está a la altura del eje de ruedas:
+            8.0212 cm.
+
+            Por eso trasladamos la malla -8.0212 cm en Z.
+            -->
+
+            <origin
+                xyz="0 0 -0.080212"
+                rpy="0 0 ${pi/2}"/>
+
+            <geometry>
+
+                <mesh
+                    filename="package://papa_description/meshes/Papa_Base.stl"
+                    scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+
+            </geometry>
+
+            <material name="base_gray"/>
+
+        </visual>
+
+
+        <!-- ================= COLLISION ================= -->
+
+        <!--
+        Aproximación simple de la base.
+        No usamos el STL para collision.
+        -->
+
+        <collision>
+
+            <origin
+                xyz="0 0 ${base_z_from_axle}"
+                rpy="0 0 0"/>
+
+            <geometry>
+
+                <box
+                    size="${base_length}
+                          ${base_width}
+                          ${base_height}"/>
+
+            </geometry>
+
+        </collision>
+
+
+        <!-- ================= INERTIA ================= -->
+
+        <!-- Valores provisionales -->
+
+        <inertial>
+
+            <origin
+                xyz="0 0 ${base_z_from_axle}"
+                rpy="0 0 0"/>
+
+            <mass value="5.0"/>
+
+            <inertia
+                ixx="0.0417"
+                ixy="0.0"
+                ixz="0.0"
+                iyy="0.0708"
+                iyz="0.0"
+                izz="0.1042"/>
+
+        </inertial>
+
+    </link>
+
+
+    <!-- ================================================= -->
+    <!-- BASE FOOTPRINT -> BASE LINK                       -->
+    <!-- ================================================= -->
+
+    <joint name="base_footprint_joint" type="fixed">
+
+        <parent link="base_footprint"/>
+        <child link="base_link"/>
+
+        <!--
+        El eje de las ruedas está aproximadamente
+        a un radio de rueda sobre el suelo.
+        -->
+
+        <origin
+            xyz="0 0 ${wheel_radius}"
+            rpy="0 0 0"/>
+
+    </joint>
+
+
+    <!-- ================================================= -->
+    <!-- RUEDA IZQUIERDA                                   -->
+    <!-- ================================================= -->
+
+    <link name="left_wheel_link">
+
+
+        <!-- ================= VISUAL ================= -->
+
+        <visual>
+
+            <!--
+            Centro interno original de Papa_RuedaGrande:
+
+            (-54.0188, 0, 8.0212) cm
+
+            Después de rotar +90° alrededor de Z:
+
+            (0, -54.0188, 8.0212)
+
+            Para colocar el centro de la malla exactamente
+            sobre el frame de la rueda compensamos con:
+
+            (0, +54.0188, -8.0212) cm
+            -->
+
+            <origin
+                xyz="0 0.540188 -0.080212"
+                rpy="0 0 ${pi/2}"/>
+
+            <geometry>
+
+                <mesh
+                    filename="package://papa_description/meshes/Papa_RuedaGrande.stl"
+                    scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+
+            </geometry>
+
+            <material name="wheel_black"/>
+
+        </visual>
+
+
+        <!-- ================= COLLISION ================= -->
+
+        <collision>
+
+            <!--
+            Cilindro URDF tiene eje Z.
+            Lo rotamos para que su eje quede sobre Y.
+            -->
+
+            <origin
+                xyz="0 0 0"
+                rpy="${pi/2} 0 0"/>
+
+            <geometry>
+
+                <cylinder
+                    radius="${wheel_radius}"
+                    length="${wheel_width}"/>
+
+            </geometry>
+
+        </collision>
+
+
+        <!-- ================= INERTIA ================= -->
+
+        <inertial>
+
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+
+            <mass value="0.30"/>
+
+            <inertia
+                ixx="0.00037"
+                ixy="0.0"
+                ixz="0.0"
+                iyy="0.00063"
+                iyz="0.0"
+                izz="0.00037"/>
+
+        </inertial>
+
+    </link>
+
+
+    <joint name="left_wheel_joint" type="continuous">
+
+        <parent link="base_link"/>
+        <child link="left_wheel_link"/>
+
+        <origin
+            xyz="${wheel_x} ${left_wheel_y} 0"
+            rpy="0 0 0"/>
+
+        <!--
+        Eje de rotación real de las ruedas.
+        -->
+        <axis xyz="0 1 0"/>
+
+        <dynamics
+            damping="0.0"
+            friction="0.0"/>
+
+    </joint>
+
+
+    <!-- ================================================= -->
+    <!-- RUEDA DERECHA                                     -->
+    <!-- ================================================= -->
+
+    <link name="right_wheel_link">
+
+
+        <visual>
+
+            <!--
+            Se utiliza exactamente la misma malla,
+            centrada respecto de su propio wheel_link.
+            -->
+
+            <origin
+                xyz="0 0.540188 -0.080212"
+                rpy="0 0 ${pi/2}"/>
+
+            <geometry>
+
+                <mesh
+                    filename="package://papa_description/meshes/Papa_RuedaGrande.stl"
+                    scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+
+            </geometry>
+
+            <material name="wheel_black"/>
+
+        </visual>
+
+
+        <collision>
+
+            <origin
+                xyz="0 0 0"
+                rpy="${pi/2} 0 0"/>
+
+            <geometry>
+
+                <cylinder
+                    radius="${wheel_radius}"
+                    length="${wheel_width}"/>
+
+            </geometry>
+
+        </collision>
+
+
+        <inertial>
+
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+
+            <mass value="0.30"/>
+
+            <inertia
+                ixx="0.00037"
+                ixy="0.0"
+                ixz="0.0"
+                iyy="0.00063"
+                iyz="0.0"
+                izz="0.00037"/>
+
+        </inertial>
+
+    </link>
+
+
+    <joint name="right_wheel_joint" type="continuous">
+
+        <parent link="base_link"/>
+        <child link="right_wheel_link"/>
+
+        <origin
+            xyz="${wheel_x} ${right_wheel_y} 0"
+            rpy="0 0 0"/>
+
+        <axis xyz="0 1 0"/>
+
+        <dynamics
+            damping="0.0"
+            friction="0.0"/>
+
+    </joint>
+
+
+    <!-- ================================================= -->
+    <!-- RUEDA LIBRE / CASTER                              -->
+    <!-- ================================================= -->
+
+    <link name="caster_link">
+
+
+        <!-- ================= VISUAL ================= -->
+
+        <visual>
+
+            <!--
+            Centro original Papa_RuedaChica:
+
+            (-74.8892, -17.2381, 5.0343) cm
+
+            Después de rotación +90° en Z:
+
+            (17.2381, -74.8892, 5.0343) cm
+
+            Se compensa el offset interno para que
+            caster_link quede en el centro geométrico.
+            -->
+
+            <origin
+                xyz="-0.172381 0.748892 -0.050343"
+                rpy="0 0 ${pi/2}"/>
+
+            <geometry>
+
+                <mesh
+                    filename="package://papa_description/meshes/Papa_RuedaChica.stl"
+                    scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+
+            </geometry>
+
+            <material name="caster_gray"/>
+
+        </visual>
+
+
+        <!-- ================= COLLISION ================= -->
+
+        <!--
+        Aproximación simple por ahora.
+        -->
+
+        <collision>
+
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+
+            <geometry>
+                <sphere radius="0.045"/>
+            </geometry>
+
+        </collision>
+
+
+        <!-- ================= INERTIA ================= -->
+
+        <inertial>
+
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+
+            <mass value="0.10"/>
+
+            <inertia
+                ixx="0.000025"
+                ixy="0.0"
+                ixz="0.0"
+                iyy="0.000025"
+                iyz="0.0"
+                izz="0.000025"/>
+
+        </inertial>
+
+    </link>
+
+
+    <!-- ================================================= -->
+    <!-- CASTER JOINT                                      -->
+    <!-- ================================================= -->
+
+    <joint name="caster_joint" type="fixed">
+
+        <parent link="base_link"/>
+        <child link="caster_link"/>
+
+        <origin
+            xyz="${caster_x} ${caster_y} ${caster_z}"
+            rpy="0 0 0"/>
+
+    </joint>
+
+
+</robot>
