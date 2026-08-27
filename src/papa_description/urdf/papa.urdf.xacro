@@ -6,10 +6,13 @@
 
 
     <!-- ================================================= -->
-    <!-- PARÁMETROS GEOMÉTRICOS                            -->
+    <!-- PARÁMETROS GENERALES                              -->
     <!-- ================================================= -->
 
-    <!-- STL exportados en centímetros: cm -> m -->
+    <!--
+        Los STL fueron exportados en centímetros.
+        ROS trabaja en metros.
+    -->
     <xacro:property name="mesh_scale" value="0.01"/>
 
 
@@ -18,22 +21,27 @@
     <!-- ================================================= -->
 
     <!--
-        CAD:
-            X = 41.688 cm
-            Y = 44.9812 cm
+        Papa_Base.stl original:
+
+        X = [-20.844017, 20.844017] cm
+        Y = [-22.490627, 22.490606] cm
+        Z = [10.0, 11.0] cm
+
+        Dimensiones CAD:
+            X = 41.688034 cm
+            Y = 44.981234 cm
             Z = 1.0 cm
 
-        Después de orientar el modelo según ROS:
-            X = 44.9812 cm
-            Y = 41.688 cm
+        El modelo completo se rota +90° alrededor de Z
+        para adaptarlo a la convención ROS:
+
+            ROS X = CAD Y
+            ROS Y = CAD X
     -->
 
-    <xacro:property name="base_length" value="0.449812"/>
-    <xacro:property name="base_width"  value="0.416880"/>
+    <xacro:property name="base_length" value="0.44981234"/>
+    <xacro:property name="base_width"  value="0.41688034"/>
     <xacro:property name="base_height" value="0.010"/>
-
-    <!-- Centro de la base respecto del eje de las ruedas -->
-    <xacro:property name="base_z_from_axle" value="0.024788"/>
 
 
     <!-- ================================================= -->
@@ -41,51 +49,264 @@
     <!-- ================================================= -->
 
     <!--
-        Papa_RuedaGrande.stl:
+        Papa_RuedaGrande.stl original:
+
+        X = [-55.518784, -52.518784] cm
+        Y = [-7.980000, 7.980000] cm
+        Z = [0.041235, 16.001209] cm
+
+        Centro original:
+            X = -54.018784 cm
+            Y =   0.000000 cm
+            Z =   8.021222 cm
+
+        Dimensiones:
+            ancho    = 3.0 cm
             diámetro = 15.96 cm
-            radio    = 7.98 cm
-            ancho    = 3.00 cm
     -->
 
     <xacro:property name="wheel_radius" value="0.0798"/>
     <xacro:property name="wheel_width"  value="0.030"/>
 
-    <!-- Distancia centro-centro: 42 cm -->
-    <xacro:property name="wheel_separation" value="0.420"/>
-
-    <!-- Posiciones medidas desde el ensamblaje FreeCAD -->
-    <xacro:property name="left_wheel_y"  value="0.209812"/>
-    <xacro:property name="right_wheel_y" value="-0.210188"/>
-
-    <!-- Ambas ruedas están sobre el mismo eje longitudinal -->
-    <xacro:property name="wheel_x" value="0.0"/>
-
-
-    <!-- ================================================= -->
-    <!-- RUEDA LIBRE                                       -->
-    <!-- ================================================= -->
-
-    <xacro:property name="caster_x" value="0.172381"/>
-    <xacro:property name="caster_y" value="0.001108"/>
-    <xacro:property name="caster_z" value="-0.029869"/>
-
-
-    <!-- ================================================= -->
-    <!-- LIDAR PROVISORIO                                  -->
-    <!-- ================================================= -->
-
-    <xacro:property name="lidar_radius" value="0.035"/>
-    <xacro:property name="lidar_height" value="0.040"/>
+    <!-- Altura física del eje respecto del suelo -->
+    <xacro:property name="wheel_axle_height" value="0.08021222"/>
 
     <!--
-        Centro del cilindro.
-        La superficie superior de la base está aproximadamente
-        a z = 0.0298 m respecto de base_link.
+        Placements finales FreeCAD:
 
-        Con un LiDAR de 4 cm de alto:
-            0.0298 + 0.020 ~= 0.05 m
+        rueda 1 = X +33 cm
+        rueda 2 = X +75 cm
+
+        Centros CAD finales:
+
+        rueda 1:
+            -54.018784 + 33 = -21.018784 cm
+
+        rueda 2:
+            -54.018784 + 75 = +20.981216 cm
+
+        Después de rotar +90° en Z,
+        estos valores pasan al eje Y de ROS.
     -->
-    <xacro:property name="lidar_z" value="0.050"/>
+
+    <xacro:property
+        name="left_wheel_y"
+        value="0.20981216"/>
+
+    <xacro:property
+        name="right_wheel_y"
+        value="-0.21018784"/>
+
+    <xacro:property
+        name="wheel_separation"
+        value="0.420"/>
+
+    <xacro:property
+        name="wheel_x"
+        value="0.0"/>
+
+
+    <!-- ================================================= -->
+    <!-- BASE RESPECTO DEL EJE                             -->
+    <!-- ================================================= -->
+
+    <!--
+        Centro de Papa_Base:
+
+            Z = 10.5 cm
+
+        Centro del eje:
+
+            Z = 8.021222 cm
+
+        Diferencia:
+
+            10.5 - 8.021222
+            = 2.478778 cm
+            = 0.02478778 m
+    -->
+
+    <xacro:property
+        name="base_z_from_axle"
+        value="0.02478778"/>
+
+
+    <!-- ================================================= -->
+    <!-- CASTER                                             -->
+    <!-- ================================================= -->
+
+    <!--
+        Papa_RuedaChica.stl original:
+
+        X = [-77.139221, -72.639221] cm
+        Y = [-21.476267, -13.0] cm
+        Z = [0.068543, 10.0] cm
+
+        Centro original:
+
+            X = -74.889221 cm
+            Y = -17.238133 cm
+            Z =   5.034271 cm
+
+        Placement final:
+
+            X += 75 cm
+
+        Centro CAD final:
+
+            X = +0.110779 cm
+            Y = -17.238133 cm
+            Z = +5.034271 cm
+
+        Después de +90° en Z:
+
+            ROS X = +17.238133 cm
+            ROS Y =  +0.110779 cm
+
+        Respecto de base_link:
+
+            Z = 5.034271 - 8.021222
+              = -2.986951 cm
+    -->
+
+    <xacro:property
+        name="caster_x"
+        value="0.17238133"/>
+
+    <xacro:property
+        name="caster_y"
+        value="0.00110779"/>
+
+    <xacro:property
+        name="caster_z"
+        value="-0.02986951"/>
+
+
+    <!-- ================================================= -->
+    <!-- CUERPO / CARCASA                                  -->
+    <!-- ================================================= -->
+
+    <!--
+        ROS_MODEL.stl original:
+
+        X = [27.5, 72.5] cm
+        Y = [-22.495552, 23.041376] cm
+        Z = [11.0, 103.300003] cm
+
+        Centro original:
+
+            X = 50.000000 cm
+            Y = 0.272912 cm
+            Z = 57.150002 cm
+
+        Placement final FreeCAD:
+
+            (-50, 0, 0) cm
+
+        Centro CAD final:
+
+            X = 0
+            Y = 0.272912 cm
+            Z = 57.150002 cm
+
+        Después de rotar +90°:
+
+            ROS X = -0.272912 cm
+            ROS Y =  0
+            ROS Z = 57.150002 cm
+
+        Respecto del eje de ruedas:
+
+            Z = 57.150002 - 8.021222
+              = 49.128779 cm
+    -->
+
+    <xacro:property
+        name="body_x"
+        value="-0.00272912"/>
+
+    <xacro:property
+        name="body_y"
+        value="0.0"/>
+
+    <xacro:property
+        name="body_z"
+        value="0.49128779"/>
+
+    <!-- Dimensiones aproximadas de la carcasa -->
+
+    <xacro:property
+        name="body_radius"
+        value="0.227685"/>
+
+    <xacro:property
+        name="body_height"
+        value="0.923"/>
+
+
+    <!-- ================================================= -->
+    <!-- LIDAR                                              -->
+    <!-- ================================================= -->
+
+    <!--
+        Lidar_ROS_MODEL.stl original:
+
+        X = [-3.617459, 3.499633] cm
+        Y = [-3.881640, 6.281160] cm
+        Z = [98.224998, 104.063721] cm
+
+        Centro original:
+
+            X = -0.058913 cm
+            Y = +1.199760 cm
+            Z = 101.144360 cm
+
+        Placement final FreeCAD:
+
+            (0, 0, +2) cm
+
+        Centro final CAD:
+
+            X = -0.058913 cm
+            Y = +1.199760 cm
+            Z = 103.144360 cm
+
+        Después de +90° en Z:
+
+            ROS X = -1.199760 cm
+            ROS Y = -0.058913 cm
+
+        Respecto del eje:
+
+            Z = 103.144360 - 8.021222
+              = 95.123137 cm
+    -->
+
+    <xacro:property
+        name="lidar_x"
+        value="-0.01199760"/>
+
+    <xacro:property
+        name="lidar_y"
+        value="-0.00058913"/>
+
+    <xacro:property
+        name="lidar_z"
+        value="0.95123137"/>
+
+    <!-- Bounding Box real del STL -->
+
+    <xacro:property
+        name="lidar_size_x"
+        value="0.10162800"/>
+
+    <xacro:property
+        name="lidar_size_y"
+        value="0.07117092"/>
+
+    <xacro:property
+        name="lidar_size_z"
+        value="0.05838722"/>
 
 
     <!-- ================================================= -->
@@ -94,6 +315,10 @@
 
     <material name="base_gray">
         <color rgba="0.35 0.35 0.35 1.0"/>
+    </material>
+
+    <material name="body_gray">
+        <color rgba="0.45 0.45 0.45 1.0"/>
     </material>
 
     <material name="wheel_black">
@@ -113,7 +338,10 @@
     <!-- BASE FOOTPRINT                                    -->
     <!-- ================================================= -->
 
-    <!-- Frame ubicado sobre el suelo -->
+    <!--
+        base_footprint está ubicado sobre el suelo
+        directamente debajo del centro del eje.
+    -->
 
     <link name="base_footprint"/>
 
@@ -123,39 +351,33 @@
     <!-- ================================================= -->
 
     <!--
-        base_link está ubicado:
+        base_link está ubicado en:
 
-            X = centro del robot
-            Y = centro del robot
-            Z = altura del eje de las ruedas
+            X = centro longitudinal del robot
+            Y = centro transversal
+            Z = eje de las ruedas
     -->
 
     <link name="base_link">
 
 
-        <!-- ================= VISUAL ================= -->
+        <!-- ================================================= -->
+        <!-- VISUAL: BASE                                      -->
+        <!-- ================================================= -->
 
-        <visual>
+        <visual name="base_visual">
 
             <!--
-                Papa_Base.stl:
+                El STL de la base tiene su centro en Z=10.5 cm.
 
-                    X = [-20.844, 20.844] cm
-                    Y = [-22.4906, 22.4906] cm
-                    Z = [10, 11] cm
+                Como base_link está en Z=8.021222 cm,
+                desplazamos todo el STL -8.021222 cm.
 
-                Centro:
-                    (0, 0, 10.5 cm)
-
-                El eje de las ruedas está a:
-                    Z = 8.0212 cm
-
-                Se rota 90 grados alrededor de Z para
-                adaptar el CAD a la orientación ROS.
+                El STL completo se rota +90° en Z.
             -->
 
             <origin
-                xyz="0 0 -0.080212"
+                xyz="0 0 -0.08021222"
                 rpy="0 0 ${pi/2}"/>
 
             <geometry>
@@ -171,9 +393,11 @@
         </visual>
 
 
-        <!-- ================= COLLISION ================= -->
+        <!-- ================================================= -->
+        <!-- COLLISION: BASE                                   -->
+        <!-- ================================================= -->
 
-        <collision>
+        <collision name="base_collision">
 
             <origin
                 xyz="0 0 ${base_z_from_axle}"
@@ -189,9 +413,16 @@
         </collision>
 
 
-        <!-- ================= INERTIAL ================= -->
+        <!-- ================================================= -->
+        <!-- INERCIAL: BASE                                    -->
+        <!-- ================================================= -->
 
-        <!-- Valores provisionales -->
+        <!--
+            Valores todavía provisionales.
+
+            Cuando tengamos la masa real y distribución
+            final conviene recalcularlos.
+        -->
 
         <inertial>
 
@@ -219,15 +450,110 @@
     <!-- BASE FOOTPRINT -> BASE LINK                       -->
     <!-- ================================================= -->
 
-    <joint name="base_footprint_joint" type="fixed">
+    <joint
+        name="base_footprint_joint"
+        type="fixed">
 
         <parent link="base_footprint"/>
         <child link="base_link"/>
 
-        <!-- Eje de las ruedas a un radio sobre el suelo -->
+        <!--
+            El eje de las ruedas está aproximadamente
+            a un radio de rueda sobre el suelo.
+        -->
 
         <origin
             xyz="0 0 ${wheel_radius}"
+            rpy="0 0 0"/>
+
+    </joint>
+
+
+    <!-- ================================================= -->
+    <!-- CUERPO / CARCASA                                  -->
+    <!-- ================================================= -->
+
+    <link name="body_link">
+
+
+        <!-- ================================================= -->
+        <!-- VISUAL                                            -->
+        <!-- ================================================= -->
+
+        <visual>
+
+            <!--
+                body_link está ubicado en el centro geométrico
+                final de la carcasa.
+
+                El STL, sin embargo, tiene su centro original en:
+
+                    (50, 0.272912, 57.150002) cm
+
+                Luego de rotar +90° en Z se compensa ese
+                origen interno para centrar la malla en body_link.
+            -->
+
+            <origin
+                xyz="0.00272912 -0.50000000 -0.57150002"
+                rpy="0 0 ${pi/2}"/>
+
+            <geometry>
+
+                <mesh
+                    filename="package://papa_description/meshes/ROS_MODEL.stl"
+                    scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+
+            </geometry>
+
+            <material name="body_gray"/>
+
+        </visual>
+
+
+        <!-- ================================================= -->
+        <!-- COLLISION                                         -->
+        <!-- ================================================= -->
+
+        <!--
+            Aproximación cilíndrica de la carcasa.
+
+            El modelo mide aproximadamente:
+                45 cm de diámetro
+                92.3 cm de alto.
+        -->
+
+        <collision>
+
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+
+            <geometry>
+
+                <cylinder
+                    radius="${body_radius}"
+                    length="${body_height}"/>
+
+            </geometry>
+
+        </collision>
+
+
+    </link>
+
+
+    <!-- ================================================= -->
+    <!-- BODY JOINT                                        -->
+    <!-- ================================================= -->
+
+    <joint
+        name="body_joint"
+        type="fixed">
+
+        <parent link="base_link"/>
+        <child link="body_link"/>
+
+        <origin
+            xyz="${body_x} ${body_y} ${body_z}"
             rpy="0 0 0"/>
 
     </joint>
@@ -240,23 +566,23 @@
     <link name="left_wheel_link">
 
 
-        <!-- ================= VISUAL ================= -->
-
         <visual>
 
             <!--
-                Centro original del STL:
-                    (-54.0188, 0, 8.0212) cm
+                Centro original de Papa_RuedaGrande.stl:
 
-                Después de rotar +90 grados en Z:
-                    (0, -54.0188, 8.0212)
+                    (-54.018784, 0, 8.021222) cm
 
-                Se compensa para hacer coincidir el centro
-                de la rueda con left_wheel_link.
+                Después de +90°:
+
+                    (0, -54.018784, 8.021222)
+
+                Se compensa para hacer que el centro
+                geométrico coincida con left_wheel_link.
             -->
 
             <origin
-                xyz="0 0.540188 -0.080212"
+                xyz="0 0.54018784 -0.08021222"
                 rpy="0 0 ${pi/2}"/>
 
             <geometry>
@@ -272,11 +598,12 @@
         </visual>
 
 
-        <!-- ================= COLLISION ================= -->
-
         <collision>
 
-            <!-- Cilindro URDF: eje Z -> rotado hacia Y -->
+            <!--
+                El cilindro URDF tiene eje longitudinal Z.
+                La rueda debe girar alrededor de Y.
+            -->
 
             <origin
                 xyz="0 0 0"
@@ -292,8 +619,6 @@
 
         </collision>
 
-
-        <!-- ================= INERTIAL ================= -->
 
         <inertial>
 
@@ -315,7 +640,9 @@
     </link>
 
 
-    <joint name="left_wheel_joint" type="continuous">
+    <joint
+        name="left_wheel_joint"
+        type="continuous">
 
         <parent link="base_link"/>
         <child link="left_wheel_link"/>
@@ -324,7 +651,6 @@
             xyz="${wheel_x} ${left_wheel_y} 0"
             rpy="0 0 0"/>
 
-        <!-- Eje de rotación -->
         <axis xyz="0 1 0"/>
 
         <dynamics
@@ -341,17 +667,17 @@
     <link name="right_wheel_link">
 
 
-        <!-- ================= VISUAL ================= -->
-
         <visual>
 
             <!--
-                Se usa el mismo STL que para la rueda izquierda.
-                El joint define su posición en el lado opuesto.
+                Se usa exactamente el mismo STL que para
+                la rueda izquierda.
+
+                Solamente cambia la posición del joint.
             -->
 
             <origin
-                xyz="0 0.540188 -0.080212"
+                xyz="0 0.54018784 -0.08021222"
                 rpy="0 0 ${pi/2}"/>
 
             <geometry>
@@ -366,8 +692,6 @@
 
         </visual>
 
-
-        <!-- ================= COLLISION ================= -->
 
         <collision>
 
@@ -385,8 +709,6 @@
 
         </collision>
 
-
-        <!-- ================= INERTIAL ================= -->
 
         <inertial>
 
@@ -408,7 +730,9 @@
     </link>
 
 
-    <joint name="right_wheel_joint" type="continuous">
+    <joint
+        name="right_wheel_joint"
+        type="continuous">
 
         <parent link="base_link"/>
         <child link="right_wheel_link"/>
@@ -427,31 +751,32 @@
 
 
     <!-- ================================================= -->
-    <!-- RUEDA LIBRE / CASTER                              -->
+    <!-- CASTER                                             -->
     <!-- ================================================= -->
 
     <link name="caster_link">
 
 
-        <!-- ================= VISUAL ================= -->
-
         <visual>
 
             <!--
-                Centro original Papa_RuedaChica:
+                Centro original:
 
-                    (-74.8892, -17.2381, 5.0343) cm
+                    (-74.889221,
+                     -17.238133,
+                       5.034271) cm
 
-                Después de rotar +90 grados en Z:
+                Después de +90°:
 
-                    (17.2381, -74.8892, 5.0343) cm
+                    (17.238133,
+                    -74.889221,
+                      5.034271)
 
-                Se compensa el offset interno para colocar
-                caster_link en el centro geométrico.
+                Se compensa el centro interno del STL.
             -->
 
             <origin
-                xyz="-0.172381 0.748892 -0.050343"
+                xyz="-0.17238133 0.74889221 -0.05034271"
                 rpy="0 0 ${pi/2}"/>
 
             <geometry>
@@ -467,22 +792,22 @@
         </visual>
 
 
-        <!-- ================= COLLISION ================= -->
-
-        <!-- Aproximación simple -->
+        <!-- Aproximación para colisión -->
 
         <collision>
 
-            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <origin
+                xyz="0 0 0"
+                rpy="0 0 0"/>
 
             <geometry>
+
                 <sphere radius="0.045"/>
+
             </geometry>
 
         </collision>
 
-
-        <!-- ================= INERTIAL ================= -->
 
         <inertial>
 
@@ -508,7 +833,9 @@
     <!-- CASTER JOINT                                      -->
     <!-- ================================================= -->
 
-    <joint name="caster_joint" type="fixed">
+    <joint
+        name="caster_joint"
+        type="fixed">
 
         <parent link="base_link"/>
         <child link="caster_link"/>
@@ -524,30 +851,35 @@
     <!-- YDLIDAR X4                                        -->
     <!-- ================================================= -->
 
-    <!--
-        Por ahora usamos una geometría cilíndrica simple.
-
-        El frame lidar_link representa aproximadamente
-        el centro del sensor.
-
-        Más adelante podemos reemplazar esta geometría
-        por un STL del YDLIDAR si lo queremos.
-    -->
-
     <link name="lidar_link">
 
 
-        <!-- ================= VISUAL ================= -->
+        <!-- ================================================= -->
+        <!-- VISUAL                                            -->
+        <!-- ================================================= -->
 
         <visual>
 
-            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <!--
+                Centro original del STL:
+
+                    (-0.058913,
+                     +1.199760,
+                    101.144360) cm
+
+                Se compensa ese offset interno para colocar
+                el centro del STL sobre lidar_link.
+            -->
+
+            <origin
+                xyz="0.01199760 0.00058913 -1.01144360"
+                rpy="0 0 ${pi/2}"/>
 
             <geometry>
 
-                <cylinder
-                    radius="${lidar_radius}"
-                    length="${lidar_height}"/>
+                <mesh
+                    filename="package://papa_description/meshes/Lidar_ROS_MODEL.stl"
+                    scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
 
             </geometry>
 
@@ -556,17 +888,27 @@
         </visual>
 
 
-        <!-- ================= COLLISION ================= -->
+        <!-- ================================================= -->
+        <!-- COLLISION                                         -->
+        <!-- ================================================= -->
+
+        <!--
+            Bounding box aproximado después de adaptar
+            los ejes CAD -> ROS.
+        -->
 
         <collision>
 
-            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <origin
+                xyz="0 0 0"
+                rpy="0 0 0"/>
 
             <geometry>
 
-                <cylinder
-                    radius="${lidar_radius}"
-                    length="${lidar_height}"/>
+                <box
+                    size="${lidar_size_x}
+                          ${lidar_size_y}
+                          ${lidar_size_z}"/>
 
             </geometry>
 
@@ -580,20 +922,15 @@
     <!-- LIDAR JOINT                                       -->
     <!-- ================================================= -->
 
-    <joint name="lidar_joint" type="fixed">
+    <joint
+        name="lidar_joint"
+        type="fixed">
 
         <parent link="base_link"/>
         <child link="lidar_link"/>
 
-        <!--
-            Posición provisoria:
-                X = 0     -> centrado adelante/atrás
-                Y = 0     -> centrado izquierda/derecha
-                Z = 5 cm  -> apoyado sobre la plataforma
-        -->
-
         <origin
-            xyz="0 0 ${lidar_z}"
+            xyz="${lidar_x} ${lidar_y} ${lidar_z}"
             rpy="0 0 0"/>
 
     </joint>
