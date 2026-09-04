@@ -4,8 +4,8 @@
 #define CCW  2
 #define BRAKEGND 3
 #define CS_THRESHOLD 100
-#define RIGHT_MOTOR 0
-#define LEFT_MOTOR 1
+#define RIGHT_MOTOR 1
+#define LEFT_MOTOR 0
 
 /* VNH2SP30 pin definitions */
 
@@ -73,18 +73,18 @@ void test_adelante(void) {
 }
 
 void test_atras(void) {
-    motorGo(LEFT_MOTOR, CCW, 70);
-    motorGo(RIGHT_MOTOR, CCW, 75);
+    motorGo(LEFT_MOTOR, CW, 70);
+    motorGo(RIGHT_MOTOR, CW, 75);
 }
 
 void test_girar_derecha(void) {
-    motorGo(LEFT_MOTOR, CW, 70);
-    motorGo(RIGHT_MOTOR, CCW, 75);  
+    motorGo(LEFT_MOTOR, CCW, 70);
+    motorGo(RIGHT_MOTOR, CW, 75);  
 }
 
 void test_girar_izquierda(void) {
-    motorGo(LEFT_MOTOR, CCW, 70);
-    motorGo(RIGHT_MOTOR, CW, 75);  
+    motorGo(LEFT_MOTOR, CW, 70);
+    motorGo(RIGHT_MOTOR, CCW, 75);  
 }
 
 // Nueva función necesaria para el control manual
