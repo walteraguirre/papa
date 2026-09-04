@@ -24,9 +24,11 @@ class RobotOdometryNode(Node):
         super().__init__('nodo_serial_sensores')
         
         # Parámetros mecánicos (Ajustar constantes)
-        self.TICKS_PER_METER = 1000.0  
-        self.TICKS_PER_REV = 360.0 
-        self.UMBRAL_OBSTACULO_CM = 30.0 
+        self.TICKS_PER_REV = 36.0      # ticks por vuelta de rueda
+        self.WHEEL_RADIUS = 0.08       # metros, ajustar al valor real
+        self.WHEEL_SEPARATION = 0.42    # metros, distancia entre ruedas
+
+        self.UMBRAL_OBSTACULO_CM = 30.0
         
         # Publicadores ROS 2
         self.pub_obstaculo = self.create_publisher(Bool, 'robot/obstaculo_frontal', 10)
@@ -40,7 +42,7 @@ class RobotOdometryNode(Node):
         self.yaw = 0.0
         self.last_enc1 = 0
         self.last_enc2 = 0
-        self.last_time = time.time()
+        self.last_time = time.monotonic()
         
         # Proceso de calibración estocástica inicial
         self.calibrating = True
@@ -67,7 +69,7 @@ class RobotOdometryNode(Node):
                 if line:
                     data = line.split(',')
                     if len(data) == 8:
-                        current_time = time.time()
+                        current_time = time.monotonic()
                         dt = current_time - self.last_time
                         self.last_time = current_time
                         
@@ -78,12 +80,23 @@ class RobotOdometryNode(Node):
                         # --- 1. REMOCIÓN DEL SESGO (BIAS) ---
                         if self.calibrating:
                             self.gyro_samples.append(gyroZ_raw)
+
                             if len(self.gyro_samples) >= 100:
                                 self.gyro_bias = sum(self.gyro_samples) / len(self.gyro_samples)
+
+                                self.last_enc1 = enc1
+                                self.last_enc2 = enc2
+                                self.last_time = time.monotonic()
+
                                 self.calibrating = False
-                                self.get_logger().info(f"Calibración finalizada. Offset: {self.gyro_bias:.2f} °/s")
-                            continue 
-                        
+
+                                self.get_logger().info(
+                                    f"Calibración finalizada. Offset: "
+                                    f"{self.gyro_bias:.2f} °/s"
+                                )
+
+                            continue
+                                                
                         # --- 2. FILTRO DE SENSIBILIDAD ---
                         gyroZ = gyroZ_raw - self.gyro_bias
                         gyro_z_rad = math.radians(gyroZ)
@@ -91,19 +104,57 @@ class RobotOdometryNode(Node):
                         if abs(gyro_z_rad) < GYRO_DEADBAND_RAD:
                             gyro_z_rad = 0.0
                             
-                        self.yaw += gyro_z_rad * dt
+                        #self.yaw += gyro_z_rad * dt
                         
-                        # --- 3. ODOMETRÍA LINEAL ---
-                        d_enc1 = enc1 - self.last_enc1
-                        d_enc2 = enc2 - self.last_enc2
-                        self.last_enc1, self.last_enc2 = enc1, enc2
-                        
-                        d_distance = ((d_enc1 + d_enc2) / 2.0) / self.TICKS_PER_METER
-                        self.x += d_distance * math.cos(self.yaw)
-                        self.y += d_distance * math.sin(self.yaw)
-                        
-                        v_x = d_distance / dt if dt > 0 else 0.0
-                        v_theta = gyro_z_rad
+                        # --- 3. ODOMETRÍA DIFERENCIAL ---
+                        d_enc_left = enc1 - self.last_enc1
+                        d_enc_right = enc2 - self.last_enc2
+
+                        self.last_enc1 = enc1
+                        self.last_enc2 = enc2
+
+                        # ticks -> desplazamiento angular de cada rueda
+                        dtheta_left = (2.0 * math.pi / self.TICKS_PER_REV) * d_enc_left
+                        dtheta_right = (2.0 * math.pi / self.TICKS_PER_REV) * d_enc_right
+
+
+                        # Distancia lineal recorrida por cada rueda
+                        ds_left = self.WHEEL_RADIUS * dtheta_left
+                        ds_right = self.WHEEL_RADIUS * dtheta_right
+
+                        # desplazamiento del centro del robot
+                        ds = (ds_right + ds_left) / 2.0
+
+                        # rotación del robot
+                        dtheta_robot = (
+                            ds_right - ds_left
+                        ) / self.WHEEL_SEPARATION
+
+                        # integración usando orientación a mitad del intervalo
+                        theta_mid = self.yaw + dtheta_robot / 2.0
+
+                        self.x += ds * math.cos(theta_mid)
+                        self.y += ds * math.sin(theta_mid)
+                        self.yaw += dtheta_robot
+
+                        # normalizar yaw entre -pi y pi
+                        self.yaw = math.atan2(
+                            math.sin(self.yaw),
+                            math.cos(self.yaw)
+                        )
+
+                        # velocidades
+                        if dt > 0.0:
+                            v_left = ds_left / dt
+                            v_right = ds_right / dt
+
+                            v_x = (v_right + v_left) / 2.0
+                            v_theta = (
+                                v_right - v_left
+                            ) / self.WHEEL_SEPARATION
+                        else:
+                            v_x = 0.0
+                            v_theta = 0.0
                         
                         ros_time = self.get_clock().now().to_msg()
                         
