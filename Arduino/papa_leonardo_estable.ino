@@ -68,23 +68,23 @@ void motorGo(uint8_t motor, uint8_t direct, uint8_t pwm) {
 }
   
 void test_adelante(void) {
-    motorGo(LEFT_MOTOR, CW, 70); // LEFT es 1, RIGHT es 0 (según el original, motorGo(0) era 108)
-    motorGo(RIGHT_MOTOR, CW, 75);
+    motorGo(LEFT_MOTOR, CW, 75); // LEFT es 1, RIGHT es 0 (según el original, motorGo(0) era 108)
+    motorGo(RIGHT_MOTOR, CW, 82.5);
 }
 
 void test_atras(void) {
-    motorGo(LEFT_MOTOR, CW, 70);
-    motorGo(RIGHT_MOTOR, CW, 75);
+    motorGo(LEFT_MOTOR, CW, 75);
+    motorGo(RIGHT_MOTOR, CW, 82.5);
 }
 
 void test_girar_derecha(void) {
-    motorGo(LEFT_MOTOR, CCW, 70);
-    motorGo(RIGHT_MOTOR, CW, 75);  
+    motorGo(LEFT_MOTOR, CCW, 75);
+    motorGo(RIGHT_MOTOR, CW, 82.5);  
 }
 
 void test_girar_izquierda(void) {
-    motorGo(LEFT_MOTOR, CW, 70);
-    motorGo(RIGHT_MOTOR, CCW, 75);  
+    motorGo(LEFT_MOTOR, CW, 75);
+    motorGo(RIGHT_MOTOR, CCW, 82.5);  
 }
 
 // Nueva función necesaria para el control manual
