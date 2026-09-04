@@ -14,8 +14,8 @@ const int MPU_ADDR = 0x68;
 // Pines Encoders (Canal A y B)
 const int ENC1_A = 26;
 const int ENC1_B = 13;
-const int ENC2_A = 14;
-const int ENC2_B = 27;
+const int ENC2_A = 27;
+const int ENC2_B = 14;
 
 // Contadores volátiles (modificados dentro de las interrupciones)
 volatile long countEnc1 = 0;
