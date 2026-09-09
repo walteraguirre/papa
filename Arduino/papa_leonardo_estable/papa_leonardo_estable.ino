@@ -7,6 +7,9 @@
 #define RIGHT_MOTOR 1
 #define LEFT_MOTOR 0
 
+#define VELOCIDAD 75
+#define FACTOR_CORRECCION 1.2
+
 /* VNH2SP30 pin definitions */
 
 double distanceleft;
@@ -73,18 +76,18 @@ void test_adelante(void) {
 }
 
 void test_atras(void) {
-    motorGo(LEFT_MOTOR, CW, 75);
-    motorGo(RIGHT_MOTOR, CW, 82.5);
+    motorGo(LEFT_MOTOR, CW, VELOCIDAD);
+    motorGo(RIGHT_MOTOR, CW, VELOCIDAD*FACTOR_CORRECCION);
 }
 
 void test_girar_derecha(void) {
-    motorGo(LEFT_MOTOR, CCW, 75);
-    motorGo(RIGHT_MOTOR, CW, 82.5);  
+    motorGo(LEFT_MOTOR, CCW, VELOCIDAD);
+    motorGo(RIGHT_MOTOR, CW, VELOCIDAD*FACTOR_CORRECCION);  
 }
 
 void test_girar_izquierda(void) {
-    motorGo(LEFT_MOTOR, CW, 75);
-    motorGo(RIGHT_MOTOR, CCW, 82.5);  
+    motorGo(LEFT_MOTOR, CW, VELOCIDAD);
+    motorGo(RIGHT_MOTOR, CCW, VELOCIDAD*FACTOR_CORRECCION);  
 }
 
 // Nueva función necesaria para el control manual
