@@ -1,0 +1,117 @@
+============================================================
+
+PAPA - Cargar mapa guardado en ROS 2 Jazzy + RViz
+
+Mapa:
+
+~/papa_ws/Mappeo/mi_primer_mapa.yaml
+
+~/papa_ws/Mappeo/mi_primer_mapa.pgm
+
+============================================================
+
+————————————————————
+
+TERMINAL 1 - Lanzar map_server
+
+————————————————————
+
+source /opt/ros/jazzy/setup.bash
+
+ros2 run nav2_map_server map_server
+–ros-args
+-p yaml_filename:=$HOME/papa_ws/Mappeo/mi_primer_mapa.yaml
+
+————————————————————
+
+TERMINAL 2 - Activar el lifecycle del map_server
+
+————————————————————
+
+source /opt/ros/jazzy/setup.bash
+
+ros2 lifecycle set /map_server configure ros2 lifecycle set /map_server
+activate
+
+Comprobar estado (debería indicar “active [3]”)
+
+ros2 lifecycle get /map_server
+
+Comprobar que existe /map
+
+ros2 topic list | grep map
+
+————————————————————
+
+TERMINAL 3 - Abrir RViz
+
+————————————————————
+
+source /opt/ros/jazzy/setup.bash
+
+rviz2
+
+————————————————————
+
+CONFIGURACIÓN EN RVIZ
+
+————————————————————
+
+1) Global Options -> Fixed Frame = map
+
+2) Add -> By topic -> /map -> Map
+
+3) MUY IMPORTANTE:
+
+En las propiedades del display “Map”:
+
+Reliability Policy = Reliable
+
+Durability Policy = Transient Local
+
+Si Durability Policy queda en “Volatile”, puede aparecer:
+
+“No map received”
+
+aunque /map exista.
+
+————————————————————
+
+COMPROBACIONES OPCIONALES
+
+————————————————————
+
+Ver información y QoS del tópico:
+
+ros2 topic info /map –verbose
+
+Recibir una vez el OccupancyGrid usando el QoS correcto:
+
+ros2 topic echo /map
+–qos-durability transient_local
+–qos-reliability reliable
+–once
+
+————————————————————
+
+NOTA
+
+————————————————————
+
+Para visualizar este mapa NO es necesario tener conectado:
+
+- Raspberry Pi
+
+- Robot PAPA
+
+- LiDAR
+
+- Encoders / odometría
+
+Solo se necesitan los archivos:
+
+mi_primer_mapa.yaml
+
+mi_primer_mapa.pgm
+
+Ambos deben mantenerse juntos en la carpeta Mappeo.
