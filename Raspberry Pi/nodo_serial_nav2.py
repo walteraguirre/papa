@@ -39,7 +39,9 @@ class MotorSerialNode(Node):
         if self.arduino and self.arduino.is_open:
             self.arduino.close()
             
-        puertos = glob.glob('/dev/ttyACM*') + glob.glob('/dev/ttyUSB*')
+        # Búsqueda dinámica restringida ÚNICAMENTE a puertos ACM
+        puertos = glob.glob('/dev/ttyACM*')
+        
         for p in puertos:
             try:
                 self.arduino = serial.Serial(p, self.baudrate, timeout=1)
@@ -48,7 +50,8 @@ class MotorSerialNode(Node):
                 return
             except Exception:
                 pass
-        self.get_logger().error('No se encontró Arduino. Reintentando en el próximo comando...')
+                
+        self.get_logger().error('No se encontró Arduino (ttyACM). Reintentando en el próximo comando...')
         self.arduino = None
 
     def manual_callback(self, msg):
