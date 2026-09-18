@@ -931,7 +931,7 @@
 
         <origin
             xyz="${lidar_x} ${lidar_y} ${lidar_z}"
-            rpy="0 0 0"/>
+            rpy="0 0 ${pi}"/>
 
     </joint>
 
