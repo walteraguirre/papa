@@ -12,7 +12,7 @@
 #define FACTOR_CORRECCION 1.2
 
 // Tiempo máximo sin recibir comandos antes de detenerse (milisegundos)
-#define TIMEOUT_SEGURIDAD 1000
+#define TIMEOUT_SEGURIDAD 2000
 
 // ============================================================
 // PINES DEL MOTOR SHIELD
