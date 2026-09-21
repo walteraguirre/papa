@@ -103,5 +103,6 @@ def generate_launch_description():
         amcl_node,
         lifecycle_manager,
         nav2_navigation,
+        pose_memory_node,  #recuperamos posición
         rviz_node
     ])
