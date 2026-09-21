@@ -11,7 +11,6 @@ import math
 import time
 
 def yaw_to_quaternion(yaw):
-    # Importación corregida para evitar errores silenciosos en la red TF
     q = Quaternion()
     q.x = 0.0
     q.y = 0.0
@@ -31,7 +30,11 @@ class RobotOdometryNode(Node):
         self.UMBRAL_OBSTACULO_CM = 30.0
         
         # Publicadores ROS 2
-        self.pub_obstaculo = self.create_publisher(Bool, 'robot/obstaculo_frontal', 10)
+        # --- Modificación: 3 tópicos independientes para ultrasonidos ---
+        self.pub_obs_l = self.create_publisher(Bool, 'robot/obstaculo/izquierdo', 10)
+        self.pub_obs_c = self.create_publisher(Bool, 'robot/obstaculo/centro', 10)
+        self.pub_obs_r = self.create_publisher(Bool, 'robot/obstaculo/derecho', 10)
+        
         self.pub_odom = self.create_publisher(Odometry, 'odom', 10)
         self.pub_joints = self.create_publisher(JointState, 'joint_states', 10)
         self.tf_broadcaster = TransformBroadcaster(self)
@@ -51,7 +54,6 @@ class RobotOdometryNode(Node):
         self.get_logger().info("Calibrando MPU6050... NO MUEVA EL ROBOT.")
         
         try:
-            # Apuntar a /dev/ttyUSB0 (o /dev/arduino_base si usaste reglas Udev)
             self.serial_port = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
         except Exception as e:
             self.get_logger().error(f"Falla crítica de hardware: {e}")
@@ -104,8 +106,6 @@ class RobotOdometryNode(Node):
                         if abs(gyro_z_rad) < GYRO_DEADBAND_RAD:
                             gyro_z_rad = 0.0
                             
-                        #self.yaw += gyro_z_rad * dt
-                        
                         # --- 3. ODOMETRÍA DIFERENCIAL ---
                         d_enc_left = enc1 - self.last_enc1
                         d_enc_right = enc2 - self.last_enc2
@@ -113,45 +113,31 @@ class RobotOdometryNode(Node):
                         self.last_enc1 = enc1
                         self.last_enc2 = enc2
 
-                        # ticks -> desplazamiento angular de cada rueda
                         dtheta_left = (2.0 * math.pi / self.TICKS_PER_REV) * d_enc_left
                         dtheta_right = (2.0 * math.pi / self.TICKS_PER_REV) * d_enc_right
 
-
-                        # Distancia lineal recorrida por cada rueda
                         ds_left = self.WHEEL_RADIUS * dtheta_left
                         ds_right = self.WHEEL_RADIUS * dtheta_right
 
-                        # desplazamiento del centro del robot
                         ds = (ds_right + ds_left) / 2.0
+                        dtheta_robot = (ds_right - ds_left) / self.WHEEL_SEPARATION
 
-                        # rotación del robot
-                        dtheta_robot = (
-                            ds_right - ds_left
-                        ) / self.WHEEL_SEPARATION
-
-                        # integración usando orientación a mitad del intervalo
                         theta_mid = self.yaw + dtheta_robot / 2.0
 
                         self.x += ds * math.cos(theta_mid)
                         self.y += ds * math.sin(theta_mid)
                         self.yaw += dtheta_robot
 
-                        # normalizar yaw entre -pi y pi
                         self.yaw = math.atan2(
                             math.sin(self.yaw),
                             math.cos(self.yaw)
                         )
 
-                        # velocidades
                         if dt > 0.0:
                             v_left = ds_left / dt
                             v_right = ds_right / dt
-
                             v_x = (v_right + v_left) / 2.0
-                            v_theta = (
-                                v_right - v_left
-                            ) / self.WHEEL_SEPARATION
+                            v_theta = (v_right - v_left) / self.WHEEL_SEPARATION
                         else:
                             v_x = 0.0
                             v_theta = 0.0
@@ -175,7 +161,6 @@ class RobotOdometryNode(Node):
                         
                         joint_msg = JointState()
                         joint_msg.header.stamp = ros_time
-                        # IMPORTANTE: Reemplazar por los nombres de la etiqueta <joint> en tu URDF
                         joint_msg.name = ['left_wheel_joint', 'right_wheel_joint'] 
                         joint_msg.position = [angle_left, angle_right]
                         self.pub_joints.publish(joint_msg)
@@ -192,16 +177,20 @@ class RobotOdometryNode(Node):
                         odom.twist.twist.angular.z = v_theta
                         self.pub_odom.publish(odom)
                         
-                        # --- 7. ULTRASONIDOS (Lógica de interrupción) ---
-                        hay_obstaculo = (distL < self.UMBRAL_OBSTACULO_CM) or \
-                                        (distC < self.UMBRAL_OBSTACULO_CM) or \
-                                        (distR < self.UMBRAL_OBSTACULO_CM)
-                        msg_obs = Bool()
-                        msg_obs.data = hay_obstaculo
-                        self.pub_obstaculo.publish(msg_obs)
+                        # --- 7. ULTRASONIDOS (Evaluación y publicación individual) ---
+                        msg_obs_l = Bool()
+                        msg_obs_l.data = bool(distL < self.UMBRAL_OBSTACULO_CM)
+                        self.pub_obs_l.publish(msg_obs_l)
+                        
+                        msg_obs_c = Bool()
+                        msg_obs_c.data = bool(distC < self.UMBRAL_OBSTACULO_CM)
+                        self.pub_obs_c.publish(msg_obs_c)
+                        
+                        msg_obs_r = Bool()
+                        msg_obs_r.data = bool(distR < self.UMBRAL_OBSTACULO_CM)
+                        self.pub_obs_r.publish(msg_obs_r)
                         
             except Exception as e:
-                # El registro de errores evitará bloqueos silenciosos en la red TF
                 self.get_logger().error(f"Excepción en el procesamiento: {e}")
 
 def main(args=None):
