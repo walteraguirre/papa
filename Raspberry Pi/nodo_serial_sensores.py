@@ -56,7 +56,7 @@ class RobotOdometryNode(Node):
         self.get_logger().info("Calibrando MPU6050... NO MUEVA EL ROBOT.")
         
         try:
-            self.serial_port = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+            self.serial_port = serial.Serial('/dev/ttyUSB1', 115200, timeout=1)
         except Exception as e:
             self.get_logger().error(f"Falla crítica de hardware: {e}")
             return
