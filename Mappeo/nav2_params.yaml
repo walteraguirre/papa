@@ -110,12 +110,12 @@ controller_server:
       max_speed_xy: 0.15
       min_speed_theta: 0.0
       # Aceleraciones:
-      acc_lim_x: 1.0
+      acc_lim_x:  0.35
       acc_lim_y: 0.0
-      acc_lim_theta: 1.5
-      decel_lim_x: -1.0
+      acc_lim_theta: 0.6
+      decel_lim_x: -0.35
       decel_lim_y: 0.0
-      decel_lim_theta: -1.5
+      decel_lim_theta: -0.6
       # Críticos simples de DWB:
       vx_samples: 20
       vy_samples: 1
@@ -130,8 +130,8 @@ controller_server:
       stateful: True
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
       BaseObstacle.scale: 0.005
-      PathAlign.scale: 32.0
-      GoalAlign.scale: 32.0
+      PathAlign.scale: 16.0
+      GoalAlign.scale: 16.0
       PathAlign.forward_point_distance: 0.1
       GoalAlign.forward_point_distance: 0.1
       PathDist.scale: 32.0
@@ -173,12 +173,13 @@ local_costmap:
         observation_sources: sonar_scan
         sonar_scan:
           topic: /sonar_scan
+          inf_is_valid: true
           max_obstacle_height: 1.0
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 0.40 # Distancia máxima para limpiar
-          obstacle_max_range: 0.35 # Distancia máxima para marcar
+          raytrace_max_range: 2.0 # Distancia máxima para limpiar
+          obstacle_max_range: 1.5 # Distancia máxima para marcar
           
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -221,12 +222,13 @@ global_costmap:
         observation_sources: sonar_scan
         sonar_scan:
           topic: /sonar_scan
+          inf_is_valid: true
           max_obstacle_height: 1.0
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 0.40
-          obstacle_max_range: 0.35
+          raytrace_max_range: 2.0
+          obstacle_max_range: 1.5
           
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -334,10 +336,10 @@ velocity_smoother:
     stamp_smoothed_velocity_with_smoothing_time: False
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.133, 0.0, 0.635]
-    min_velocity: [-0.133, 0.0, -0.635]
-    max_accel: [1.0, 0.0, 2.0]
-    max_decel: [-2.5, 0.0, -3.2]
+    max_velocity: [0.15, 0.0, 0.8]
+    min_velocity: [-0.15, 0.0, -0.8]
+    max_accel: [0.35, 0.0, 0.60]
+    max_decel: [-0.35, 0.0, -0.60]
     odom_topic: "odom"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]

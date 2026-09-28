@@ -1,0 +1,23 @@
+slam_toolbox:
+  ros__parameters:
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_footprint
+    scan_topic: /scan
+    mode: mapping
+    
+    # Tolerancias de red y hardware
+    transform_timeout: 0.5
+    
+    # 1. Reducir la frecuencia de actualización
+    minimum_travel_distance: 0.3
+    minimum_travel_heading: 0.5
+    
+    # 2. Restringir el espacio de búsqueda (evita que salte a otra pared)
+    correlation_search_space_dimension: 0.3
+    correlation_search_space_resolution: 0.01
+    
+    # 3. PENALIZACIONES (Clave para tu problema)
+    # Valores más altos = confía MÁS en la odometría de tus ruedas y MENOS en el Lidar
+    distance_variance_penalty: 0.5   # Por defecto suele ser bajo
+    angle_variance_penalty: 1.5      # Aumentado drásticamente para evitar teletransportación al rotar
