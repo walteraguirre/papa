@@ -18,8 +18,8 @@ class TeleopFlechas(Node):
         self.publisher = self.create_publisher(String, '/comando_arduino', 10)
         
         # Parámetros de movimiento (Aumentamos max_speed para tener mayor rango útil)
-        self.max_speed = 60
-        self.step = 2  # Tasa de aceleración por ciclo
+        self.max_speed = 120
+        self.step = 1  # Tasa de aceleración por ciclo
         self.min_pwm = 45 # Salto inicial para vencer la inercia estática (Deadband)
         
         # Variables de estado

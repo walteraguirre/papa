@@ -2,22 +2,25 @@ slam_toolbox:
   ros__parameters:
     odom_frame: odom
     map_frame: map
-    base_frame: base_footprint
+    base_frame: base_link
     scan_topic: /scan
     mode: mapping
-    
-    # Tolerancias de red y hardware
-    transform_timeout: 0.5
-    
-    # 1. Reducir la frecuencia de actualización
+    max_laser_range: 10.0
+    resolution: 0.05
+    transform_timeout: 2.0  
+
+    # =======================================================
+    # LIFELONG MAPPING (MAPAS ACTUALIZABLES)
+    # Si quieres continuar un mapa anterior, quita el "#"
+    # de las dos líneas de abajo y pon la ruta sin el .posegraph
+    # =======================================================
+    #map_file_name: "/home/perez_010/papa/Mappeo/mapa_maestro"
+    #map_start_pose: [0.0, 0.0, 0.0]
+
+    # --- PENALIZACIONES ---
     minimum_travel_distance: 0.3
     minimum_travel_heading: 0.5
-    
-    # 2. Restringir el espacio de búsqueda (evita que salte a otra pared)
     correlation_search_space_dimension: 0.3
     correlation_search_space_resolution: 0.01
-    
-    # 3. PENALIZACIONES (Clave para tu problema)
-    # Valores más altos = confía MÁS en la odometría de tus ruedas y MENOS en el Lidar
-    distance_variance_penalty: 0.5   # Por defecto suele ser bajo
-    angle_variance_penalty: 1.5      # Aumentado drásticamente para evitar teletransportación al rotar
+    distance_variance_penalty: 0.5   
+    angle_variance_penalty: 1.5
