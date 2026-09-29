@@ -15,7 +15,7 @@ def generate_launch_description():
         "papa.urdf.xacro"
     )
     
-    mapa_path = "/home/perez_010/papa/Mappeo/salon2.yaml"
+    mapa_path = "/home/perez_010/papa/Mappeo/paseo_colon_1er.yaml"
     nav2_params_path = "/home/perez_010/papa/Mappeo/nav2_params.yaml"
 
     model_arg = DeclareLaunchArgument(
