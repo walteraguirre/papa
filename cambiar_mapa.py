@@ -2,9 +2,12 @@
 import os
 import re
 
-# Rutas estáticas según tu estructura
-MAPS_DIR = "/home/perez_010/papa/Mappeo/"
-LAUNCH_FILE = "/home/perez_010/papa/papa_ws/src/papa_description/launch/display.launch.py"
+home_dir = os.path.expanduser('~')
+
+# Mantenemos la barra final ("/") por si el resto de tu código une los textos directamente
+MAPS_DIR = os.path.join(home_dir, "papa", "Mappeo") + "/"
+
+LAUNCH_FILE = os.path.join(home_dir, "papa", "papa_ws", "src", "papa_description", "launch", "display.launch.py")
 
 def main():
     print("\nBuscando mapas disponibles...")

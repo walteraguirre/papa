@@ -15,8 +15,11 @@ def generate_launch_description():
         "papa.urdf.xacro"
     )
     
-    mapa_path = "/home/perez_010/papa/Mappeo/paseo_colon_1er.yaml"
-    nav2_params_path = "/home/perez_010/papa/Mappeo/nav2_params.yaml"
+    home_dir = os.path.expanduser('~')
+    
+    # Construye las rutas pegando las carpetas
+    mapa_path = os.path.join(home_dir, "papa", "Mappeo", "paseo_colon_1er.yaml")
+    nav2_params_path = os.path.join(home_dir, "papa", "Mappeo", "nav2_params.yaml")
 
     model_arg = DeclareLaunchArgument(
         name="model",
