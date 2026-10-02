@@ -49,7 +49,7 @@ class AutoLocalizationV3(Node):
         # 3. CRITERIO TEMPORAL
         # ============================================================
 
-        self.STABLE_TIME = 3.0
+        self.STABLE_TIME = 1.0
 
         # ============================================================
         # 4. MOVIMIENTO
@@ -58,11 +58,11 @@ class AutoLocalizationV3(Node):
         # Estado 1 = girar
         # ============================================================
 
-        self.LINEAR_SPEED = 0.20
-        self.ANGULAR_SPEED = 0.80
+        self.LINEAR_SPEED = 0.10
+        self.ANGULAR_SPEED = 0.40
 
         # Cuando encuentra obstáculo gira durante 5 segundos
-        self.ROTATE_TIME = 5.0
+        self.ROTATE_TIME = 1.5
 
         self.search_phase = 0
         self.phase_start = time.monotonic()
@@ -71,7 +71,7 @@ class AutoLocalizationV3(Node):
         # 5. SONAR
         # ============================================================
 
-        self.SONAR_STOP_DISTANCE = 0.30
+        self.SONAR_STOP_DISTANCE = 0.50
         self.SONAR_TIMEOUT = 2.0
 
         self.sonar_distance = float('inf')
