@@ -1,0 +1,60 @@
+Ubicado ----------------------------------------
+Pose AMCL:
+  x   = -3.086 m
+  y   = 18.273 m
+  yaw = 98.28 deg
+
+Covarianza:
+  var_x   = 0.022741
+  var_y   = 0.073706
+  var_yaw = 0.035849
+
+Incertidumbre:
+  sigma_x   = 0.151 m
+  sigma_y   = 0.271 m
+  sigma_yaw = 10.85 deg
+----------------------------------------
+
+----------------------------------------
+[INFO] [1790889221.286478125] [auto_localization]: 
+----------------------------------------
+Pose AMCL:
+  x   = -3.568 m
+  y   = 16.628 m
+  yaw = -159.73 deg
+
+Covarianza:
+  var_x   = 0.028060
+  var_y   = 0.041203
+  var_yaw = 0.039566
+
+Incertidumbre:
+  sigma_x   = 0.168 m
+  sigma_y   = 0.203 m
+  sigma_yaw = 11.40 deg
+----------------------------------------
+
+
+No ubicado
+
+----------------------------------------
+[INFO] [1790888897.099645501] [auto_localization]: 
+----------------------------------------
+Pose AMCL:
+  x   = -3.371 m
+  y   = 1.368 m
+  yaw = 132.15 deg
+
+Covarianza:
+  var_x   = 0.254912
+  var_y   = 0.255796
+  var_yaw = 0.066281
+
+Incertidumbre:
+  sigma_x   = 0.505 m
+  sigma_y   = 0.506 m
+  sigma_yaw = 14.75 deg
+----------------------------------------
+
+
+
