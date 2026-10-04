@@ -42,8 +42,8 @@ class AutoLocalizationV3(Node):
         self.MATCH_RADIUS = 0.15
         self.SCAN_STEP = 2
 
-        self.MATCH_WINDOW = 20
-        self.MATCH_AVG_MIN = 80.0
+        self.MATCH_WINDOW = 40
+        self.MATCH_AVG_MIN = 60.0
 
         # ============================================================
         # 3. CRITERIO TEMPORAL

@@ -9,7 +9,7 @@
 #define LEFT_MOTOR  0
 
 // Factor de corrección para el motor derecho
-#define FACTOR_CORRECCION 1.2
+#define FACTOR_CORRECCION 1.0
 
 // Tiempo máximo sin recibir comandos antes de detenerse (milisegundos)
 #define TIMEOUT_SEGURIDAD 2000
