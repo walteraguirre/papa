@@ -30,7 +30,7 @@ class TeleopFlechas(Node):
 
         self.max_speed = 100
         self.step = 1
-        self.min_pwm = 45
+        self.min_pwm = 60
 
         # ============================================================
         # VARIABLES DE ESTADO

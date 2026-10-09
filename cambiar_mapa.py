@@ -3,29 +3,31 @@ import os
 import re
 
 home_dir = os.path.expanduser('~')
-
-# Mantenemos la barra final ("/") por si el resto de tu código une los textos directamente
-MAPS_DIR = os.path.join(home_dir, "papa", "Mappeo") + "/"
-
+MAPS_DIR = os.path.join(home_dir, "papa", "Mappeo")
 LAUNCH_FILE = os.path.join(home_dir, "papa", "papa_ws", "src", "papa_description", "launch", "display.launch.py")
 
 def main():
     print("\nBuscando mapas disponibles...")
     
-    # 1. Validar directorio y buscar archivos .yaml
     if not os.path.exists(MAPS_DIR):
         print(f"Error: El directorio {MAPS_DIR} no existe.")
         return
 
-    map_files = [f for f in os.listdir(MAPS_DIR) if f.endswith('.yaml') and f != 'nav2_params.yaml']
+    # Filtro inteligente: Solo mostramos archivos .yaml que tengan un archivo .pgm con el mismo nombre
+    # Esto excluye automáticamente nav2_params.yaml y archivos de waypoints sueltos
+    map_files = []
+    for f in os.listdir(MAPS_DIR):
+        if f.endswith('.yaml'):
+            base_name = f[:-5] # Quita el '.yaml'
+            if os.path.exists(os.path.join(MAPS_DIR, f"{base_name}.pgm")):
+                map_files.append(f)
     
     if not map_files:
-        print(f"No se encontraron mapas en {MAPS_DIR}.")
+        print(f"No se encontraron mapas válidos (YAML + PGM) en {MAPS_DIR}.")
         return
 
     map_files.sort()
 
-    # 2. Mostrar la lista al usuario
     print("\n" + "="*40)
     print(" MAPAS DISPONIBLES")
     print("="*40)
@@ -33,7 +35,6 @@ def main():
         print(f"  [{i}] {file}")
     print("="*40)
 
-    # 3. Solicitar selección
     try:
         seleccion = int(input("\nIngresa el número del mapa que deseas utilizar: "))
         if seleccion < 1 or seleccion > len(map_files):
@@ -44,9 +45,7 @@ def main():
         return
 
     mapa_seleccionado = map_files[seleccion - 1]
-    nueva_ruta = os.path.join(MAPS_DIR, mapa_seleccionado)
 
-    # 4. Modificar el archivo display.launch.py
     if not os.path.exists(LAUNCH_FILE):
         print(f"Error: No se encuentra el archivo {LAUNCH_FILE}.")
         return
@@ -54,12 +53,21 @@ def main():
     with open(LAUNCH_FILE, 'r') as file:
         contenido = file.read()
 
-    # Patrón Regex: Busca "mapa_path = 'ruta'" y reemplaza el string interno
-    patron = r'(mapa_path\s*=\s*)["\'][^"\']+["\']'
-    nuevo_contenido = re.sub(patron, rf'\1"{nueva_ruta}"', contenido)
+    # Nuevo Patrón Regex: Busca exactamente "mapa_path = os.path.join(..., 'nombre_mapa.yaml')"
+    # y cambia solo el nombre del archivo al final.
+    patron = r'(mapa_path\s*=\s*os\.path\.join\([^,]+,\s*[^,]+,\s*[^,]+,\s*)["\'][^"\']+["\']\)'
+    
+    # Verificamos si el patrón existe antes de reemplazar
+    if not re.search(patron, contenido):
+         print("\nError fatal: No se encontró la estructura 'mapa_path = os.path.join(...)' en tu display.launch.py.")
+         print("Asegúrate de que la línea se vea así:")
+         print('mapa_path = os.path.join(home_dir, "papa", "Mappeo", "nombre.yaml")')
+         return
+
+    nuevo_contenido = re.sub(patron, rf'\1"{mapa_seleccionado}")', contenido)
 
     if contenido == nuevo_contenido:
-        print("\nAdvertencia: No se detectaron cambios. Es posible que el archivo ya tenga este mapa o que la variable 'mapa_path' tenga otro formato.")
+        print(f"\nEl robot ya está utilizando el mapa '{mapa_seleccionado}'. No se hicieron cambios.")
         return
 
     with open(LAUNCH_FILE, 'w') as file:

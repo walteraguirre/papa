@@ -1,268 +1,125 @@
-import serial
-import math
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from nav_msgs.msg import Odometry
+import threading
 import time
-
-from PyQt5 import QtWidgets, QtCore
-import pyqtgraph as pg
-
-
-# ============================================================
-# CONFIGURACIÓN
-# ============================================================
-
-SERIAL_PORT = "COM11"
-BAUDRATE = 115200
-
-TICKS_PER_REV = 36.0
-WHEEL_RADIUS = 0.08
-WHEEL_SEPARATION = 0.42
-
-
-# ============================================================
-# VARIABLES DE ODOMETRÍA
-# ============================================================
-
-x = 0.0
-y = 0.0
-yaw = 0.0
-
-last_enc1 = None
-last_enc2 = None
-
-trayectoria_x = [0.0]
-trayectoria_y = [0.0]
-
-
-# ============================================================
-# PUERTO SERIAL
-# ============================================================
-
-ser = serial.Serial(
-    SERIAL_PORT,
-    BAUDRATE,
-    timeout=0
-)
-
-time.sleep(2)
-
-print("Conectado a:", SERIAL_PORT)
-print("Esperando datos...")
-
-
-# ============================================================
-# INTERFAZ PYQTGRAPH
-# ============================================================
-
-app = QtWidgets.QApplication([])
-
-win = pg.GraphicsLayoutWidget(
-    show=True,
-    title="Odometría por encoders"
-)
-
-win.resize(800, 700)
-
-plot = win.addPlot(
-    title="Trayectoria estimada"
-)
-
-plot.setLabel("bottom", "X", units="m")
-plot.setLabel("left", "Y", units="m")
-
-plot.showGrid(x=True, y=True)
-
-# Mantener misma escala en X e Y
-plot.setAspectLocked(True)
-
-curve = plot.plot(
-    trayectoria_x,
-    trayectoria_y,
-    pen=pg.mkPen(width=2)
-)
-
-# Punto actual del robot
-robot_point = plot.plot(
-    [0],
-    [0],
-    pen=None,
-    symbol="o",
-    symbolSize=10
-)
-
-
-# ============================================================
-# PROCESAMIENTO SERIAL
-# ============================================================
-
-def actualizar():
-
-    global x, y, yaw
-    global last_enc1, last_enc2
-
-    # Leer todas las líneas disponibles
-    while ser.in_waiting:
-
-        try:
-
-            line = ser.readline().decode(
-                "utf-8",
-                errors="ignore"
-            ).strip()
-
-            if not line:
-                continue
-
-            data = line.split(",")
-
-            if len(data) != 8:
-                continue
-
-            # Trama:
-            # distL,distC,distR,gyroX,gyroY,gyroZ,enc1,enc2
-
-            enc1 = int(data[6])
-            enc2 = int(data[7])
-
-        except:
-            continue
-
-
-        # ====================================================
-        # PRIMERA MEDICIÓN
-        # ====================================================
-
-        if last_enc1 is None:
-
-            last_enc1 = enc1
-            last_enc2 = enc2
-
-            print("Referencia inicial:")
-            print(f"ENC1 = {enc1}")
-            print(f"ENC2 = {enc2}")
-
-            continue
-
-
-        # ====================================================
-        # DIFERENCIA DE TICKS
-        # ====================================================
-
-        d_enc_left = enc1 - last_enc1
-        d_enc_right = enc2 - last_enc2
-
-        last_enc1 = enc1
-        last_enc2 = enc2
-
-
-        # ====================================================
-        # TICKS -> ÁNGULO
-        # ====================================================
-
-        dtheta_left = (
-            2.0 * math.pi / TICKS_PER_REV
-        ) * d_enc_left
-
-        dtheta_right = (
-            2.0 * math.pi / TICKS_PER_REV
-        ) * d_enc_right
-
-
-        # ====================================================
-        # ÁNGULO -> DISTANCIA
-        # ====================================================
-
-        ds_left = WHEEL_RADIUS * dtheta_left
-        ds_right = WHEEL_RADIUS * dtheta_right
-
-
-        # ====================================================
-        # ODOMETRÍA DIFERENCIAL
-        # ====================================================
-
-        ds = (ds_right + ds_left) / 2.0
-
-        dtheta_robot = (
-            ds_right - ds_left
-        ) / WHEEL_SEPARATION
-
-
-        theta_mid = yaw + dtheta_robot / 2.0
-
-
-        x += ds * math.cos(theta_mid)
-        y += ds * math.sin(theta_mid)
-
-        yaw += dtheta_robot
-
-
-        # Normalización [-pi, pi]
-
-        yaw = math.atan2(
-            math.sin(yaw),
-            math.cos(yaw)
+import math
+
+class OdomRotationDiagnostic(Node):
+    def __init__(self):
+        super().__init__('odom_rotation_diagnostic')
+        self.sub = self.create_subscription(
+            Odometry, 
+            '/odom', 
+            self.odom_callback, 
+            10
         )
+        self.yaw = 0.0
+        self.msg_count = 0
 
+    def odom_callback(self, msg):
+        self.msg_count += 1
+        
+        # Extraer Yaw (Rotación Z) desde el Cuaternión
+        q = msg.pose.pose.orientation
+        siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+        cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        self.yaw = math.degrees(math.atan2(siny_cosp, cosy_cosp))
 
-        # ====================================================
-        # GUARDAR TRAYECTORIA
-        # ====================================================
+# Función para evitar errores si el ángulo pasa de 180 a -180
+def get_angle_diff(start, end):
+    diff = end - start
+    while diff > 180.0:
+        diff -= 360.0
+    while diff < -180.0:
+        diff += 360.0
+    return diff
 
-        trayectoria_x.append(x)
-        trayectoria_y.append(y)
+def run_diagnostics(node):
+    print("\n==================================================")
+    print(" [DIAGNÓSTICO] ROTACIÓN Y ENCODERS - PAPA")
+    print("==================================================\n")
+    
+    print("Esperando conexión con el tópico /odom...")
+    timeout = 10
+    start_wait = time.time()
+    
+    while node.msg_count == 0:
+        if time.time() - start_wait > timeout:
+            print("[ERROR CRÍTICO]: No hay datos en /odom.")
+            print("Presiona Ctrl+C para salir.")
+            return
+        time.sleep(0.1)
+        
+    print(f"[OK]: Conexión establecida.\n")
 
+    # ==========================================
+    # PRUEBA 1: GIRO DERECHA
+    # ==========================================
+    print("--------------------------------------------------")
+    input("-> PRUEBA 1: Gira el robot hacia la DERECHA (aprox 90 grados) y presiona ENTER...")
+    
+    start_yaw = node.yaw
+    
+    input("... Usa tu teleop para girar a la derecha. Presiona ENTER cuando termines ...")
+    
+    delta_yaw = get_angle_diff(start_yaw, node.yaw)
+    
+    print(f"\nResultados Prueba 1 (Giro a la Derecha):")
+    print(f" - Rotación medida: {delta_yaw:.1f} grados")
+    
+    if delta_yaw < -30.0:
+        print("   [OK] CORRECTO: En ROS, girar a la derecha es negativo.")
+    elif delta_yaw > 30.0:
+        print("   [FALLA GRAVE]: Giraste a la derecha, pero el sistema cree que giraste a la IZQUIERDA.")
+        print("      Solución: Los cables de dirección de tu encoder derecho o izquierdo están invertidos.")
+    else:
+        print("   [FALLA GRAVE]: No se detectó rotación suficiente en el encoder.")
 
-        # ====================================================
-        # CONSOLA
-        # ====================================================
+    # ==========================================
+    # PRUEBA 2: GIRO IZQUIERDA
+    # ==========================================
+    print("\n--------------------------------------------------")
+    input("-> PRUEBA 2: Gira el robot hacia la IZQUIERDA (aprox 90 grados) y presiona ENTER...")
+    
+    start_yaw = node.yaw
+    
+    input("... Usa tu teleop para girar a la izquierda. Presiona ENTER cuando termines ...")
+    
+    delta_yaw = get_angle_diff(start_yaw, node.yaw)
+    
+    print(f"\nResultados Prueba 2 (Giro a la Izquierda):")
+    print(f" - Rotación medida: {delta_yaw:.1f} grados")
+    
+    if delta_yaw > 30.0:
+        print("   [OK] CORRECTO: En ROS, girar a la izquierda es positivo.")
+    elif delta_yaw < -30.0:
+        print("   [FALLA GRAVE]: Giraste a la izquierda, pero el sistema cree que giraste a la DERECHA.")
+    else:
+        print("   [FALLA GRAVE]: No se detectó rotación suficiente.")
 
-        print(
-            f"ENC1: {enc1:6d}   "
-            f"ENC2: {enc2:6d}   |   "
-            f"dL: {d_enc_left:3d}   "
-            f"dR: {d_enc_right:3d}   |   "
-            f"x: {x:+.3f} m   "
-            f"y: {y:+.3f} m   "
-            f"yaw: {math.degrees(yaw):+.1f}°"
-        )
+    print("\n==================================================")
+    print(" [FIN] Diagnóstico finalizado. Presiona Ctrl+C para salir.")
+    print("==================================================\n")
 
+def main(args=None):
+    rclpy.init(args=args)
+    node = OdomRotationDiagnostic()
+    
+    cli_thread = threading.Thread(target=run_diagnostics, args=(node,))
+    cli_thread.daemon = True
+    cli_thread.start()
+    
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
-    # ========================================================
-    # ACTUALIZAR GRÁFICO
-    # ========================================================
-
-    curve.setData(
-        trayectoria_x,
-        trayectoria_y
-    )
-
-    robot_point.setData(
-        [x],
-        [y]
-    )
-
-
-# ============================================================
-# TIMER DE LA GUI
-# ============================================================
-
-timer = QtCore.QTimer()
-
-timer.timeout.connect(actualizar)
-
-# 50 ms = gráfico a aproximadamente 20 FPS
-timer.start(50)
-
-
-# ============================================================
-# EJECUTAR
-# ============================================================
-
-try:
-
-    app.exec_()
-
-finally:
-
-    ser.close()
-
-    print("Puerto serial cerrado.")
+if __name__ == '__main__':
+    main()
