@@ -18,7 +18,7 @@ def generate_launch_description():
     home_dir = os.path.expanduser('~')
     
     # Construye las rutas pegando las carpetas
-    mapa_path = os.path.join(home_dir, "papa", "Mappeo", "paseo_colon_pb.yaml")
+    mapa_path = os.path.join(home_dir, "papa", "Mappeo", "paseo_colon_1er.yaml")
     nav2_params_path = os.path.join(home_dir, "papa", "Mappeo", "nav2_params.yaml")
 
     model_arg = DeclareLaunchArgument(
@@ -40,12 +40,14 @@ def generate_launch_description():
         output="screen",
         parameters=[robot_description]
     )
+    
     joint_state_publisher_node = Node(
         package="joint_state_publisher",
         executable="joint_state_publisher",
         name="joint_state_publisher",
         output="screen"
     )
+    
     map_server_node = Node(
         package="nav2_map_server",
         executable="map_server",
@@ -85,13 +87,14 @@ def generate_launch_description():
             "attempt_respawn_reconnection": True
         }]
     )
-    # Agrega esto donde defines tus otros nodos
+    
     pose_memory_node = Node(
         package="papa_description",
-        executable="pose_memory.py",  # Nota el .py al final, obligatorio en paquetes CMake
+        executable="pose_memory.py",  
         name="pose_memory_node",
         output="screen"
-)
+    )
+    
     # NUEVO: Módulo de Navegación Autónomo
     nav2_navigation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -103,12 +106,6 @@ def generate_launch_description():
         }.items()
     )
 
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        output="screen"
-    )
-
     return LaunchDescription([
         SetEnvironmentVariable('RMW_IMPLEMENTATION', 'rmw_cyclonedds_cpp'),
         model_arg,
@@ -118,6 +115,5 @@ def generate_launch_description():
         amcl_node,
         lifecycle_manager,
         nav2_navigation,
-        pose_memory_node,  #recuperamos posición
-        rviz_node
+        pose_memory_node  # Recuperamos posición
     ])
