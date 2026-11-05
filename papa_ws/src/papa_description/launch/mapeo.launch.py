@@ -64,11 +64,5 @@ def generate_launch_description():
                 'autostart': True,
                 'node_names': ['slam_toolbox']
             }]
-        ),
-        
-        Node(
-            package="rviz2", 
-            executable="rviz2", 
-            output="screen"
         )
     ])
