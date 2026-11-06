@@ -56,6 +56,17 @@ def generate_launch_description():
         parameters=[{"yaml_filename": mapa_path}]
     )
 
+    extra_map_server_node = Node(
+        package="nav2_map_server",
+        executable="map_server",
+        name="extra_map_server",
+        output="screen",
+        parameters=[{
+            "yaml_filename": os.path.join(home_dir, "papa", "Mappeo", "paseo_colon_1er_obs.yaml"),
+            "topic_name": "extra_map"
+        }]
+    )
+
     amcl_node = Node(
         package="nav2_amcl",
         executable="amcl",
@@ -82,7 +93,7 @@ def generate_launch_description():
         parameters=[{
             "use_sim_time": False,
             "autostart": True,
-            "node_names": ["map_server", "amcl"],
+            "node_names": ["map_server", "extra_map_server", "amcl"],
             "bond_timeout": 4.0, 
             "attempt_respawn_reconnection": True
         }]
@@ -112,6 +123,7 @@ def generate_launch_description():
         robot_state_publisher_node,
         joint_state_publisher_node,
         map_server_node,
+        extra_map_server_node,
         amcl_node,
         lifecycle_manager,
         nav2_navigation,

@@ -105,11 +105,11 @@ controller_server:
       debug_trajectory_details: True
       min_vel_x: 0.0
       min_vel_y: 0.0
-      max_vel_x: 0.15
+      max_vel_x: 0.11
       max_vel_y: 0.0
-      max_vel_theta: 0.8
+      max_vel_theta: 0.6
       min_speed_xy: 0.0
-      max_speed_xy: 0.15
+      max_speed_xy: 0.11
       min_speed_theta: 0.0
       # Aceleraciones:
       acc_lim_x:  0.35
@@ -122,7 +122,7 @@ controller_server:
       vx_samples: 20
       vy_samples: 1
       vtheta_samples: 20
-      sim_time: 1.5
+      sim_time: 1.7
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 2.0
@@ -185,8 +185,8 @@ local_costmap:
           
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
-        inflation_radius: 0.23
+        cost_scaling_factor: 2.0  # Menor valor = la inflación cae más lentamente (área de seguridad más "dura")
+        inflation_radius: 0.45    # Aumenta este valor (ej. de 0.23 a 0.45) para alejar más al robot
       always_send_full_costmap: True
       
 global_costmap:
@@ -199,10 +199,16 @@ global_costmap:
       robot_radius: 0.225
       resolution: 0.05
       track_unknown_space: true
-      plugins: ["static_layer", "lidar_layer", "sonar_layer", "inflation_layer"] # 4 Capas
+      plugins: ["static_layer", "extra_obs_layer", "lidar_layer", "sonar_layer", "inflation_layer"]
       
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+        
+      extra_obs_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_topic: /extra_map
+        subscribe_to_updates: True
         map_subscribe_transient_local: True
         
       lidar_layer:
