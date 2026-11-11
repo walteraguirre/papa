@@ -151,17 +151,18 @@ class RobotOdometryNode(Node):
                         # =========================================================
                         # CONFIGURACIÓN DEL LÁSER VIRTUAL DE ALTA DENSIDAD
                         # =========================================================
-                        RADIO_ROBOT = 0.225
-                        
                         # Filtro de ruido: Ignorar lecturas de 0 o rebotes fantasma menores a 2 cm
                         valid_L = 2.0 < distL < self.UMBRAL_OBSTACULO_CM
                         valid_C = 2.0 < distC < self.UMBRAL_OBSTACULO_CM
                         valid_R = 2.0 < distR < self.UMBRAL_OBSTACULO_CM
 
-                        # Cálculo de distancia incluyendo el radio del robot
-                        r_izquierda = (distL / 100.0) + RADIO_ROBOT if valid_L else float('inf')
-                        r_centro    = (distC / 100.0) + RADIO_ROBOT if valid_C else float('inf')
-                        r_derecha   = (distR / 100.0) + RADIO_ROBOT if valid_R else float('inf')
+                        # LaserScan.ranges debe contener la distancia desde el
+                        # sensor hasta el obstáculo. El radio del robot ya se
+                        # modela en el costmap; sumarlo aquí desplaza la pared
+                        # hacia afuera y hace que el controlador reaccione tarde.
+                        r_izquierda = (distL / 100.0) if valid_L else float('inf')
+                        r_centro    = (distC / 100.0) if valid_C else float('inf')
+                        r_derecha   = (distR / 100.0) if valid_R else float('inf')
 
                         sonar_scan = LaserScan()
                         sonar_scan.header.stamp = ros_time
@@ -173,7 +174,7 @@ class RobotOdometryNode(Node):
                         sonar_scan.angle_increment = (0.61 - (-0.61)) / 44.0 
                         
                         sonar_scan.range_min = 0.02
-                        sonar_scan.range_max = 2.0  # Ampliado para admitir el radio del robot + distancia
+                        sonar_scan.range_max = 2.0
 
                         # Rellenar arreglo: Derecha a Izquierda
                         sonar_scan.ranges = [r_derecha]*15 + [r_centro]*15 + [r_izquierda]*15

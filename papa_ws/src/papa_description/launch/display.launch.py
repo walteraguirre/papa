@@ -19,6 +19,7 @@ def generate_launch_description():
     
     # Construye las rutas pegando las carpetas
     mapa_path = os.path.join(home_dir, "papa", "Mappeo", "paseo_colon_1er.yaml")
+    obs_mapa_path = os.path.splitext(mapa_path)[0] + "_obs.yaml"
     nav2_params_path = os.path.join(home_dir, "papa", "Mappeo", "nav2_params.yaml")
 
     model_arg = DeclareLaunchArgument(
@@ -62,7 +63,7 @@ def generate_launch_description():
         name="extra_map_server",
         output="screen",
         parameters=[{
-            "yaml_filename": os.path.join(home_dir, "papa", "Mappeo", "paseo_colon_1er_obs.yaml"),
+            "yaml_filename": obs_mapa_path,
             "topic_name": "extra_map"
         }]
     )

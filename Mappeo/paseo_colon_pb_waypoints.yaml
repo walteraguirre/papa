@@ -1,0 +1,209 @@
+waypoints:
+  Entrada a la Facultad, enfrente del busto, mirando a los ingresantes, enfrente de los molinetes, cerca de los ascensores:
+    pose:
+    - -15.623965
+    - 1.654727
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - -0.950734
+    - 0.310007
+    x: -15.62
+    y: 1.65
+    yaw: -2.51
+  Entrada de la facultad, mirando a los ascensores del lado izquierdo:
+    pose:
+    - -15.693904
+    - 6.410585
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.905589
+    - 0.424155
+    x: -15.69
+    y: 6.41
+    yaw: 2.27
+  Entrada de la facultad, mirando a los ascensores del lado derecho:
+    pose:
+    - -11.392649
+    - 0.990304
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - -0.345008
+    - 0.9386
+    x: -11.39
+    y: 0.99
+    yaw: -0.7
+  Centro de estudiantes, mirando por la ventana.:
+    pose:
+    - -12.022101
+    - 13.439464
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.374391
+    - 0.927271
+    x: -12.02
+    y: 13.44
+    yaw: 0.77
+  Centro de Estudiantes, mirando la puerta.:
+    pose:
+    - -8.665025
+    - 11.48117
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.853465
+    - 0.52115
+    x: -8.67
+    y: 11.48
+    yaw: 2.05
+  Mirando a escaleras del lado izquierdo de la facultad:
+    pose:
+    - -17.47735
+    - 17.425993
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.399367
+    - 0.916791
+    x: -17.48
+    y: 17.43
+    yaw: 0.82
+  Mirando al centro de deportes:
+    pose:
+    - -7.47606
+    - 10.222264
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.379208
+    - 0.925312
+    x: -7.48
+    y: 10.22
+    yaw: 0.78
+  Mirando cartelera:
+    pose:
+    - 1.126449
+    - -0.33854
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - -0.321242
+    - 0.946997
+    x: 1.13
+    y: -0.34
+    yaw: -0.65
+  Mirando escaleras del lado derecho:
+    pose:
+    - 0.496997
+    - 0.850427
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.400785
+    - 0.916172
+    x: 0.5
+    y: 0.85
+    yaw: 0.82
+  La fotocopiadora:
+    pose:
+    - 13.016092
+    - -11.318977
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.453778
+    - 0.891115
+    x: 13.02
+    y: -11.32
+    yaw: 0.94
+  Llendo para el comedor:
+    pose:
+    - 26.700434
+    - -7.693386
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.34749
+    - 0.937684
+    x: 26.7
+    y: -7.69
+    yaw: 0.71
+  Mirando al busto, centro de la facultad.:
+    pose:
+    - -14.388786
+    - 2.797477
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.349025
+    - 0.937113
+    x: -14.39
+    y: 2.8
+    yaw: 0.71
+  Baño de Hombres:
+    pose:
+    - 3.782887
+    - -4.133987
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.390679
+    - 0.920527
+    x: 3.78
+    y: -4.13
+    yaw: 0.8
+  Salon del Consejo Directivo, mirando a la entrada:
+    pose:
+    - -31.498892
+    - 36.705452
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.354179
+    - 0.935178
+    x: -31.5
+    y: 36.71
+    yaw: 0.72
+  Baño de Mujeres:
+    pose:
+    - -21.070475
+    - 21.968288
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.346438
+    - 0.938073
+    x: -21.07
+    y: 21.97
+    yaw: 0.71
+  Pre-sala del salon de consejos directivos.:
+    pose:
+    - -27.439926
+    - 28.087959
+    - 0
+    orientation:
+    - 0.0
+    - 0.0
+    - 0.930215
+    - 0.367014
+    x: -27.44
+    y: 28.09
+    yaw: 2.39

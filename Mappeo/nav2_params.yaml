@@ -75,9 +75,11 @@ controller_server:
   ros__parameters:
     controller_frequency: 20.0
     costmap_update_timeout: 0.30
-    min_x_velocity_threshold: 0.5
+    # El umbral debe ser menor que la velocidad máxima del robot; de lo
+    # contrario Nav2 descarta los comandos lineales pequeños.
+    min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
-    min_theta_velocity_threshold: 0.35
+    min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["general_goal_checker"] # "precise_goal_checker"
@@ -131,11 +133,17 @@ controller_server:
       short_circuit_trajectory_evaluation: True
       stateful: True
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.005
-      PathAlign.scale: 16.0
-      GoalAlign.scale: 16.0
-      PathAlign.forward_point_distance: 0.1
-      GoalAlign.forward_point_distance: 0.1
+      # Dar prioridad a trayectorias centradas en el espacio libre. El valor
+      # anterior hacía que DWB prefiriera seguir el borde de las paredes.
+      # Penalizar con más fuerza las trayectorias que pasan junto a obstáculos.
+      # Esto favorece rodearlos por el centro del espacio libre.
+      BaseObstacle.scale: 2.0
+      PathAlign.scale: 20.0
+      GoalAlign.scale: 20.0
+      # Evaluar la orientación por delante del centro ayuda a encarar
+      # puertas y pasillos en vez de entrar de costado.
+      PathAlign.forward_point_distance: 0.25
+      GoalAlign.forward_point_distance: 0.25
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
       RotateToGoal.scale: 32.0
@@ -153,8 +161,16 @@ local_costmap:
       width: 3
       height: 3
       resolution: 0.05
-      robot_radius: 0.225
-      plugins: ["lidar_layer", "sonar_layer", "inflation_layer"] # Capas separadas
+      robot_radius: 0.24
+      # El mapa estático evita que el controlador local atraviese una pared
+      # cuando el LiDAR todavía no la marcó en la ventana rolling.
+      plugins: ["static_layer", "lidar_layer", "sonar_layer", "inflation_layer"]
+
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+        trinary_costmap: True
+        lethal_cost_threshold: 100
       
       lidar_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer" # Si preferías voxel, usa VoxelLayer aquí
@@ -185,8 +201,8 @@ local_costmap:
           
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 2.0  # Menor valor = la inflación cae más lentamente (área de seguridad más "dura")
-        inflation_radius: 0.45    # Aumenta este valor (ej. de 0.23 a 0.45) para alejar más al robot
+        cost_scaling_factor: 3.0  # La penalización cae más rápido y conserva mejor las aperturas
+        inflation_radius: 0.30    # Reducido para no cerrar puertas estrechas
       always_send_full_costmap: True
       
 global_costmap:
@@ -196,7 +212,7 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_footprint
-      robot_radius: 0.225
+      robot_radius: 0.24
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "extra_obs_layer", "lidar_layer", "sonar_layer", "inflation_layer"]
@@ -204,6 +220,8 @@ global_costmap:
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
+        trinary_costmap: True
+        lethal_cost_threshold: 100
         
       extra_obs_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -241,7 +259,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.23
+        inflation_radius: 0.30
       always_send_full_costmap: True
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
 # If you'd rather set it in the yaml, remove the default "map" value in the tb3_simulation_launch.py
@@ -266,7 +284,8 @@ planner_server:
       plugin: "nav2_navfn_planner::NavfnPlanner"
       tolerance: 0.5
       use_astar: false
-      allow_unknown: true
+      # No permitir que el planificador use celdas desconocidas como atajo.
+      allow_unknown: false
 
 smoother_server:
   ros__parameters:

@@ -39,6 +39,7 @@ def generate_launch_description():
         "Mappeo",
         "paseo_colon_1er.yaml"
     )
+    obs_mapa_path = os.path.splitext(mapa_path)[0] + "_obs.yaml"
 
     nav2_params_path = os.path.join(
         home_dir,
@@ -95,6 +96,20 @@ def generate_launch_description():
         ]
     )
 
+    extra_map_server_node = Node(
+        package="nav2_map_server",
+        executable="map_server",
+        name="extra_map_server",
+        output="screen",
+        parameters=[
+            {
+                "yaml_filename": obs_mapa_path,
+                "topic_name": "extra_map",
+                "use_sim_time": False
+            }
+        ]
+    )
+
     # ============================================================
     # LIFECYCLE DEL MAP SERVER
     # ============================================================
@@ -108,7 +123,7 @@ def generate_launch_description():
             {
                 "use_sim_time": False,
                 "autostart": True,
-                "node_names": ["map_server"]
+                "node_names": ["map_server", "extra_map_server"]
             }
         ]
     )
@@ -189,6 +204,7 @@ def generate_launch_description():
         robot_state_publisher_node,
 
         map_server_node,
+        extra_map_server_node,
         map_lifecycle_manager,
 
         map_to_odom_node,
