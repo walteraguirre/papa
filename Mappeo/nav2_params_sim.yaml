@@ -137,13 +137,13 @@ controller_server:
       # anterior hacía que DWB prefiriera seguir el borde de las paredes.
       # Penalizar con más fuerza las trayectorias que pasan junto a obstáculos.
       # Esto favorece rodearlos por el centro del espacio libre.
-      BaseObstacle.scale: 2.0
-      PathAlign.scale: 14.0
-      GoalAlign.scale: 14.0
+      BaseObstacle.scale: 4.0
+      PathAlign.scale: 32.0
+      GoalAlign.scale: 5.0
       # Evaluar la orientación por delante del centro ayuda a encarar
       # puertas y pasillos en vez de entrar de costado.
-      PathAlign.forward_point_distance: 0.25
-      GoalAlign.forward_point_distance: 0.25
+      PathAlign.forward_point_distance: 0.40
+      GoalAlign.forward_point_distance: 0.20
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
       RotateToGoal.scale: 32.0

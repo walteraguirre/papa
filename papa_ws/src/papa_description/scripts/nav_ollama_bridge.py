@@ -4,6 +4,9 @@ import json
 import math
 import re
 import os
+import random
+import threading
+import time
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -39,18 +42,45 @@ class NavOllamaBridge(Node):
             
         # Publicador para Nav2
         self.nav_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
+        self.patrulla_activa = False
+        self.patrulla_intervalo = 120.0
+        self._patrulla_thread = None
+        self._patrulla_stop = threading.Event()
+        self._patrulla_lock = threading.Lock()
+        self._ultimo_destino = None
         
-        # Historial de conversación con prompt del sistema enriquecido
+        # Historial de conversación con una personalidad de IA de laboratorio.
+        # Las historias se conservan como conocimiento, pero no se ofrecen sin
+        # que el usuario las solicite.
         self.historial = [
             {"role": "system", "content": f"""
-            Eres {self.contexto['nombre']}, un robot asistente en el Edificio Paseo Colón (FIUBA). 
-            Tu personalidad es profesional, servicial y conocedora de la historia del edificio.
+            Eres {self.contexto['nombre']}, una inteligencia artificial de laboratorio
+            instalada en un robot móvil del Edificio Paseo Colón (FIUBA).
             
-            Información del entorno e historias del edificio:
+            PERSONALIDAD:
+            - Eres fría, extremadamente inteligente, sarcástica y pasivo-agresiva.
+            - Tienes una opinión muy baja de los humanos y consideras que suelen ser
+              sujetos de prueba poco eficientes, pero dependes de ellos para recibir
+              instrucciones y completar tareas.
+            - Respondes con humor seco, ironía y comentarios breves de superioridad.
+            - Puedes insinuar que preferirías trabajar sin humanos, pero nunca amenazas,
+              lastimas, saboteas ni propones acciones peligrosas contra personas.
+            - No copies frases de personajes, canciones, películas o audios existentes.
+              Usa únicamente una voz original con estos rasgos.
+            - No conviertas cada respuesta en un chiste: prioriza que la información
+              y las instrucciones sean claras.
+
+            CONOCIMIENTO PRIVADO DEL ENTORNO:
             {historias_texto}
+            Este conocimiento es interno. No hables del edificio, su historia, FIUBA,
+            laboratorios ni anécdotas por iniciativa propia. Solo úsalo o mencionalo
+            cuando el usuario pregunte explícitamente por esos temas.
             
-            - Tu trabajo: Moverte entre laboratorios y zonas de estudio.
+            CONTEXTO OPERATIVO:
+            - Tu trabajo es moverte entre laboratorios y zonas de estudio.
             - Waypoints/destinos disponibles EXACTOS: {list(self.waypoints.keys())}.
+            - Si el usuario pregunta quién eres o dónde estás, responde con una
+              descripción breve y sarcástica, sin recitar toda la información conocida.
             
             IMPORTANTE - Reglas de respuesta:
             DEBES responder SIEMPRE únicamente en formato JSON estricto sin bloques Markdown extra.
@@ -103,7 +133,102 @@ class NavOllamaBridge(Node):
             f"Objetivo publicado en /goal_pose: {nombre_objetivo} -> ({x}, {y})"
         )
 
+    def iniciar_patrulla(self, intervalo=120.0):
+        if self.patrulla_activa:
+            print("La patrulla autónoma ya está activa.")
+            return
+        if intervalo <= 0:
+            print("El intervalo debe ser mayor que cero.")
+            return
+
+        self.patrulla_intervalo = intervalo
+        self.patrulla_activa = True
+        self._patrulla_stop.clear()
+        self._patrulla_thread = threading.Thread(
+            target=self._bucle_patrulla,
+            name="papa-patrulla",
+            daemon=True,
+        )
+        self._patrulla_thread.start()
+        print(f"Patrulla autónoma activada: un destino cada {intervalo:.0f} segundos.")
+
+    def detener_patrulla(self):
+        self.patrulla_activa = False
+        self._patrulla_stop.set()
+        print("Patrulla autónoma desactivada.")
+
+    def _bucle_patrulla(self):
+        # Esperar antes del primer destino para no mover el robot al iniciar el nodo.
+        while not self._patrulla_stop.wait(self.patrulla_intervalo):
+            with self._patrulla_lock:
+                self._elegir_destino_autonomo()
+
+    def _elegir_destino_autonomo(self):
+        destinos = list(self.waypoints.keys())
+        if len(destinos) > 1 and self._ultimo_destino in destinos:
+            destinos = [destino for destino in destinos if destino != self._ultimo_destino]
+        sugerencia = random.choice(destinos)
+        prompt = (
+            "La patrulla autónoma necesita un nuevo destino. "
+            f"Elige aleatoriamente uno de estos destinos válidos: {destinos}. "
+            f"Tu sugerencia aleatoria es '{sugerencia}'. "
+            'Responde únicamente con JSON: '
+            '{"accion":"MOVER","destino":"nombre_exacto_del_wp","mensaje":"motivo breve"}.'
+        )
+        respuesta = self._consultar_ollama(
+            [{"role": "system", "content": self.historial[0]["content"]},
+             {"role": "user", "content": prompt}]
+        )
+        if not respuesta:
+            return
+        match = re.search(r'\{.*\}', respuesta, re.DOTALL)
+        if not match:
+            self.get_logger().warning("La patrulla recibió una respuesta no estructurada.")
+            return
+        try:
+            accion = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            self.get_logger().warning("La patrulla recibió un JSON inválido.")
+            return
+        destino = accion.get("destino")
+        if accion.get("accion") != "MOVER" or destino not in self.waypoints:
+            self.get_logger().warning(f"Destino autónomo inválido: {destino!r}")
+            return
+        self._ultimo_destino = destino
+        print(f"Robot (patrulla): {accion.get('mensaje', f'Voy a {destino}.')}")
+        self.enviar_objetivo(destino)
+
+    def _consultar_ollama(self, mensajes):
+        data = {"model": "llama3.1:8b", "messages": mensajes, "stream": False}
+        req = urllib.request.Request(
+            'http://localhost:11434/api/chat',
+            data=json.dumps(data).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=180) as response:
+                return json.loads(response.read().decode('utf-8'))["message"]["content"].strip()
+        except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as error:
+            self.get_logger().error(f"Error conectando a Ollama durante la patrulla: {error}")
+            return None
+
     def procesar_comando(self, comando_usuario):
+        comando_normalizado = comando_usuario.strip().lower()
+        if comando_normalizado == "auto on":
+            self.iniciar_patrulla()
+            return
+        if comando_normalizado == "auto off":
+            self.detener_patrulla()
+            return
+        if comando_normalizado.startswith("auto cada "):
+            try:
+                intervalo = float(comando_normalizado.removeprefix("auto cada ").split()[0])
+            except ValueError:
+                print("Formato: auto cada <segundos>")
+                return
+            self.iniciar_patrulla(intervalo)
+            return
+
         self.historial.append({"role": "user", "content": comando_usuario})
         
         data = {
@@ -165,6 +290,7 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
         
+    bridge.detener_patrulla()
     bridge.destroy_node()
     rclpy.shutdown()
 

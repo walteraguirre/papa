@@ -47,7 +47,7 @@ amcl:
 bt_navigator:
   ros__parameters:
     global_frame: map
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     odom_topic: /odom
     bt_loop_duration: 10
     default_server_timeout: 20
@@ -137,13 +137,15 @@ controller_server:
       # anterior hacía que DWB prefiriera seguir el borde de las paredes.
       # Penalizar con más fuerza las trayectorias que pasan junto a obstáculos.
       # Esto favorece rodearlos por el centro del espacio libre.
-      BaseObstacle.scale: 2.0
-      PathAlign.scale: 20.0
-      GoalAlign.scale: 20.0
+      BaseObstacle.scale: 4.0
+      # Seguir el plan global debe pesar más que apuntar directamente al goal:
+      # esto permite entrar por la puerta aunque el destino esté detrás de una pared.
+      PathAlign.scale: 32.0
+      GoalAlign.scale: 5.0
       # Evaluar la orientación por delante del centro ayuda a encarar
       # puertas y pasillos en vez de entrar de costado.
-      PathAlign.forward_point_distance: 0.25
-      GoalAlign.forward_point_distance: 0.25
+      PathAlign.forward_point_distance: 0.40
+      GoalAlign.forward_point_distance: 0.20
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
       RotateToGoal.scale: 32.0
@@ -162,13 +164,23 @@ local_costmap:
       height: 3
       resolution: 0.05
       robot_radius: 0.24
-      # El mapa estático evita que el controlador local atraviese una pared
-      # cuando el LiDAR todavía no la marcó en la ventana rolling.
-      plugins: ["static_layer", "lidar_layer", "sonar_layer", "inflation_layer"]
+      # La costmap local también necesita las paredes del mapa base: el
+      # controlador debe rechazarlas antes de ejecutar una trayectoria.
+      plugins: ["static_layer", "extra_obs_layer", "lidar_layer", "sonar_layer", "inflation_layer"]
 
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
+        trinary_costmap: True
+        lethal_cost_threshold: 100
+
+      extra_obs_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_topic: /extra_map
+        subscribe_to_updates: True
+        map_subscribe_transient_local: True
+        track_unknown_space: False
+        use_maximum: True
         trinary_costmap: True
         lethal_cost_threshold: 100
       
@@ -215,19 +227,15 @@ global_costmap:
       robot_radius: 0.24
       resolution: 0.05
       track_unknown_space: true
-      plugins: ["static_layer", "extra_obs_layer", "lidar_layer", "sonar_layer", "inflation_layer"]
+      # El mapa extra no participa en el plan global; solo la ventana local
+      # considera esos obstáculos como información inmediata.
+      plugins: ["static_layer", "lidar_layer", "sonar_layer", "inflation_layer"]
       
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
         trinary_costmap: True
         lethal_cost_threshold: 100
-        
-      extra_obs_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
-        map_topic: /extra_map
-        subscribe_to_updates: True
-        map_subscribe_transient_local: True
         
       lidar_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
