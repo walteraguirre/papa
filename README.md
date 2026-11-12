@@ -25,3 +25,40 @@ Para una instalación desde cero, consulte el archivo `papa_ros2_guia.txt` en la
 - **Percepción:** Driver YDLIDAR X4 configurado para ROS 2.
 - **Navegación:** Configuración de Nav2 para planificación de rutas, evitación de obstáculos (lidar + sonar) y localización (AMCL).
 - **Control:** Scripts de interfaz para teleoperación y control del robot.
+
+## Control web desde el celular
+
+`control_web.py` publica los mismos comandos que `control_flechas.py`:
+`VEL,izquierda,derecha` en `/comando_arduino`. Mantener presionado un botón
+mantiene el movimiento; al soltarlo se publica `VEL,0,0`.
+
+En la Raspberry, el archivo puede quedar directamente en `/home/papa`, sin
+pertenecer a un paquete ROS:
+
+```bash
+chmod +x ~/control_web.py
+source /opt/ros/jazzy/setup.bash
+python3 ~/control_web.py
+```
+
+Desde el celular abrir `http://192.168.1.130:8080`. Para instalarlo como servicio,
+copiar `systemd/papa-control-web@.service` a `/etc/systemd/system/`. El servicio
+ejecuta `/home/papa/control_web.py` directamente y no necesita `papa_description`.
+Para el usuario mostrado en la Raspberry:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now papa-control-web@papa.service
+```
+
+También se puede usar el unit simple `control-web.service`, que está preparado
+específicamente para el usuario `papa`:
+
+```bash
+sudo cp control-web.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now control-web.service
+```
+
+Si la interfaz tiene otra dirección, iniciar el nodo con
+`PAPA_WEB_HOST=<ip> PAPA_WEB_PORT=8080`.

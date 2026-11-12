@@ -5,8 +5,11 @@ import math
 import re
 import os
 import random
+import shutil
+import subprocess
 import threading
 import time
+import tempfile
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -15,6 +18,7 @@ from tf_transformations import quaternion_from_euler
 import yaml
 
 MAPS_DIR = Path.home() / "papa" / "Mappeo"
+AUDIO_DIR = Path.home() / "papa" / "audio"
 WAYPOINTS_FILE = MAPS_DIR / "paseo_colon_1er_waypoints.yaml"
 CONTEXT_FILE = MAPS_DIR / "paseo_colon_1er_context.txt"
 
@@ -48,6 +52,13 @@ class NavOllamaBridge(Node):
         self._patrulla_stop = threading.Event()
         self._patrulla_lock = threading.Lock()
         self._ultimo_destino = None
+        self.piper_bin = os.environ.get("PIPER_BIN", "piper")
+        self.piper_model = os.environ.get(
+            "PIPER_MODEL",
+            str(AUDIO_DIR / "voices" / "es_AR-Elena.onnx"),
+        )
+        self.audio_player = os.environ.get("AUDIO_PLAYER", "aplay")
+        self._tts_warning_shown = False
         
         # Historial de conversación con una personalidad de IA de laboratorio.
         # Las historias se conservan como conocimiento, pero no se ofrecen sin
@@ -195,8 +206,69 @@ class NavOllamaBridge(Node):
             self.get_logger().warning(f"Destino autónomo inválido: {destino!r}")
             return
         self._ultimo_destino = destino
-        print(f"Robot (patrulla): {accion.get('mensaje', f'Voy a {destino}.')}")
+        mensaje = accion.get("mensaje", f"Voy a {destino}.")
+        print(f"Robot (patrulla): {mensaje}")
+        self.hablar(mensaje)
         self.enviar_objetivo(destino)
+
+    def hablar(self, texto):
+        """Genera y reproduce una respuesta con Piper, si está instalado."""
+        texto = str(texto).strip()
+        if not texto:
+            return
+        if not shutil.which(self.piper_bin):
+            self._avisar_tts(
+                f"No se encontró Piper ({self.piper_bin}). "
+                "La respuesta se mostrará solo por texto."
+            )
+            return
+        if not Path(self.piper_model).is_file():
+            self._avisar_tts(
+                f"No se encontró el modelo TTS: {self.piper_model}. "
+                "Configura PIPER_MODEL con la ruta al archivo .onnx."
+            )
+            return
+        if not shutil.which(self.audio_player):
+            self._avisar_tts(
+                f"No se encontró el reproductor de audio ({self.audio_player})."
+            )
+            return
+
+        wav_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as wav_file:
+                wav_path = wav_file.name
+            subprocess.run(
+                [
+                    self.piper_bin,
+                    "--model", self.piper_model,
+                    "--output_file", wav_path,
+                ],
+                input=texto,
+                text=True,
+                check=True,
+                timeout=60,
+            )
+            subprocess.run(
+                [self.audio_player, wav_path],
+                check=True,
+                timeout=60,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            self.get_logger().error(f"No se pudo sintetizar o reproducir el audio: {error}")
+        finally:
+            if wav_path:
+                try:
+                    os.unlink(wav_path)
+                except OSError:
+                    pass
+
+    def _avisar_tts(self, mensaje):
+        if not self._tts_warning_shown:
+            self.get_logger().warning(mensaje)
+            self._tts_warning_shown = True
 
     def _consultar_ollama(self, mensajes):
         data = {"model": "llama3.1:8b", "messages": mensajes, "stream": False}
@@ -261,15 +333,22 @@ class NavOllamaBridge(Node):
                             destino = respuesta.get('destino')
                             if mensaje:
                                 print(f"Robot: {mensaje}")
+                                self.hablar(mensaje)
                             else:
-                                print(f"Robot: Entendido, me muevo hacia '{destino}'.")
+                                mensaje = f"Entendido, me muevo hacia '{destino}'."
+                                print(f"Robot: {mensaje}")
+                                self.hablar(mensaje)
                             self.enviar_objetivo(destino)
                         else:
-                            print(f"Robot: {mensaje if mensaje else raw_respuesta}")
+                            mensaje = mensaje if mensaje else raw_respuesta
+                            print(f"Robot: {mensaje}")
+                            self.hablar(mensaje)
                     except json.JSONDecodeError:
                         print(f"Robot: {raw_respuesta}")
+                        self.hablar(raw_respuesta)
                 else:
                     print(f"Robot: {raw_respuesta}")
+                    self.hablar(raw_respuesta)
                     
         except Exception as e:
             self.get_logger().error(f"Error conectando a Ollama: {e}")

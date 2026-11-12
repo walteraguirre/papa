@@ -35,7 +35,8 @@ install(  DIRECTORY
 )
  install(PROGRAMS
   scripts/pose_memory.py
-  DESTINATION lib/${PROJECT_NAME}
-)
+   scripts/control_web.py
+   DESTINATION lib/${PROJECT_NAME}
+ )
 
 ament_package()
